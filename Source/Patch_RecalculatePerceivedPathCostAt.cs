@@ -17,8 +17,11 @@ namespace CleanPathfinding
     {
         static void Postfix()
         {
-            DefDatabase<TerrainDef>.AllDefs.Where(x => x.filthAcceptanceMask == FilthSourceFlags.Unnatural || (x.tags != null && x.tags.Contains("Road"))).ToList().
-                ForEach(y => Mod_CleanPathfinding.terrainCache.Add(y.GetHashCode(),new int[2]{ y.extraNonDraftedPerceivedPathCost, 0}));
+            DefDatabase<TerrainDef>.AllDefs.Where(x => x.generatedFilth != null || (x.tags != null && x.tags.Contains("Road"))).ToList().ForEach(y => 
+            {
+                Mod_CleanPathfinding.terrainCache.Add(y.GetHashCode(),new int[2]{ y.extraNonDraftedPerceivedPathCost, 0 });
+                //Log.Message(y.defName + " is " + y.GetHashCode().ToString());
+            });
             Mod_CleanPathfinding.UpdatePathCosts();
         }
     }
@@ -54,7 +57,7 @@ namespace CleanPathfinding
 
         static public int AdjustCostForHostiles(Pawn pawn, TerrainDef def)
         {
-            return (pawn != null && pawn.Faction != null && !pawn.Faction.HostileTo(Faction.OfPlayer) && def.generatedFilth != null) ? (terrainCache[def.GetHashCode()][1] * -1) : 0;
+            return (pawn != null && pawn.Faction != null && pawn.Faction.HostileTo(Faction.OfPlayer) && terrainCache.ContainsKey(def.GetHashCode())) ? (terrainCache[def.GetHashCode()][1] * -1) : 0;
         }
     }
 
@@ -63,7 +66,7 @@ namespace CleanPathfinding
     {
         static bool Prefix(ref float __result, Pawn pawn, IntVec3 start, LocalTargetInfo dest)
         {
-            if (pawn != null && pawn.RaceProps.Animal) return true;
+            if (Custom_DistanceCurve == null || (pawn != null && pawn.RaceProps.Animal)) return true;
             
             float lengthHorizontal = (start - dest.Cell).LengthHorizontal;
             __result = (float)Mathf.RoundToInt(Custom_DistanceCurve.Evaluate(lengthHorizontal));
