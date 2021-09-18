@@ -46,12 +46,12 @@ namespace CleanPathfinding
 		public static void UpdatePathCosts()
 		{
 			//Reset the cache
-			terrainCache.ToList().ForEach(x => x.Value[1] = 0);
-			DefDatabase<TerrainDef>.AllDefs.Where(x => terrainCache.ContainsKey(x.GetHashCode())).ToList().ForEach(y => 
+			terrainCache?.ToList().ForEach(x => x.Value[1] = 0);
+			DefDatabase<TerrainDef>.AllDefs.Where(x => terrainCache.ContainsKey(x.GetHashCode()))?.ToList().ForEach(y => 
 				y.extraNonDraftedPerceivedPathCost = terrainCache[y.GetHashCode()][0]);
 
 			//Avoid filth
-			DefDatabase<TerrainDef>.AllDefs.Where(x => x.filthAcceptanceMask == FilthSourceFlags.Unnatural).ToList().ForEach(y => 
+			DefDatabase<TerrainDef>.AllDefs.Where(x => x.generatedFilth != null).ToList().ForEach(y => 
 			{
 				y.extraNonDraftedPerceivedPathCost += bias; 
 				terrainCache[y.GetHashCode()][1] = bias;

@@ -19,7 +19,7 @@ namespace CleanPathfinding
         {
             DefDatabase<TerrainDef>.AllDefs.Where(x => x.generatedFilth != null || (x.tags != null && x.tags.Contains("Road"))).ToList().ForEach(y => 
             {
-                Mod_CleanPathfinding.terrainCache.Add(y.GetHashCode(),new int[2]{ y.extraNonDraftedPerceivedPathCost, 0 });
+                terrainCache.Add(y.GetHashCode(),new int[2]{ y.extraNonDraftedPerceivedPathCost, 0 });
                 //Log.Message(y.defName + " is " + y.GetHashCode().ToString());
             });
             Mod_CleanPathfinding.UpdatePathCosts();
