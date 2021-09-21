@@ -28,6 +28,7 @@ namespace CleanPathfinding
 			roadBias = (int)options.Slider((float)roadBias, 0f, 4f);
 			options.Label("Extra pathfinding range (Mod default: 0, Min: 0, Max: 230): " + extraRange, -1f, "Owl_ExtraRangeToolTip".Translate());
 			extraRange = (int)options.Slider((float)extraRange, 0f, 230f);
+			options.CheckboxLabeled("Pathfinding should factor light", ref factorLight, "Owl_FactorLight".Translate());
 			options.End();
 			base.DoSettingsWindowContents(inRect);
 		}
@@ -51,17 +52,23 @@ namespace CleanPathfinding
 				y.extraNonDraftedPerceivedPathCost = terrainCache[y.GetHashCode()][0]);
 
 			//Avoid filth
-			DefDatabase<TerrainDef>.AllDefs.Where(x => x.generatedFilth != null).ToList().ForEach(y => 
+			if (bias > 0)
 			{
-				y.extraNonDraftedPerceivedPathCost += bias; 
-				terrainCache[y.GetHashCode()][1] = bias;
-			});
+				DefDatabase<TerrainDef>.AllDefs.Where(x => x.generatedFilth != null).ToList().ForEach(y => 
+				{
+					y.extraNonDraftedPerceivedPathCost += bias; 
+					terrainCache[y.GetHashCode()][1] = bias;
+				});
+			}
 			//Attraction to roads
-			DefDatabase<TerrainDef>.AllDefs.Where(x => x.tags != null && x.tags.Contains("Road")).ToList().ForEach(y => 
+			if (roadBias > 0)
 			{
-				y.extraNonDraftedPerceivedPathCost -= roadBias;
-				terrainCache[y.GetHashCode()][1] -= roadBias;
-			});
+				DefDatabase<TerrainDef>.AllDefs.Where(x => x.tags != null && x.tags.Contains("Road")).ToList().ForEach(y => 
+				{
+					y.extraNonDraftedPerceivedPathCost -= roadBias;
+					terrainCache[y.GetHashCode()][1] -= roadBias;
+				});
+			}
 
 			//Debug
 			//terrainCache.ToList().ForEach(x => Log.Message(x.Key.ToString() + " is " + x.Value[1].ToString()));
@@ -99,11 +106,13 @@ namespace CleanPathfinding
 			Scribe_Values.Look<int>(ref bias, "bias", 8, false);
 			Scribe_Values.Look<int>(ref roadBias, "roadBias", 4, false);
 			Scribe_Values.Look<int>(ref extraRange, "extraRange", 0, false);
+			Scribe_Values.Look<bool>(ref factorLight, "factorLight", false, false);
 			base.ExposeData();
 		}
 
 		static public int bias = 8;
 		static public int roadBias = 4;
 		static public int extraRange = 0;
+		static public bool factorLight = false;
 	}
 }

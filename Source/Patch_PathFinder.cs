@@ -30,12 +30,14 @@ namespace CleanPathfinding
     {
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
+            var mapInfo = AccessTools.Field(typeof(PathFinder), "map");
             var rangeInfo = AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraNonDraftedPerceivedPathCost));
+            bool ran = false;
                 
             var codes = new List<CodeInstruction>(instructions);
             for (int i = 0; i < codes.Count; i++)
             {
-                if (codes[i].opcode == OpCodes.Ldloca_S && ((LocalBuilder)codes[i].operand).LocalIndex == 27)
+                if (codes[i].opcode == OpCodes.Ldfld && codes[i].OperandIs(rangeInfo))
                 {
                     codes.InsertRange(i + 3, new List<CodeInstruction>(){
 
@@ -44,22 +46,39 @@ namespace CleanPathfinding
                         new CodeInstruction(OpCodes.Ldloc_S, 43), //TerrainDef within the grid
                         new CodeInstruction(OpCodes.Ldelem_Ref),
                         new CodeInstruction(OpCodes.Ldloc_S, 46), //Pathcost total
-                        new CodeInstruction(OpCodes.Call, typeof(Patch_PathFinder).GetMethod(nameof(Patch_PathFinder.AdjustCostForHostiles))),
+                        new CodeInstruction(OpCodes.Ldarg_0),
+                        new CodeInstruction(OpCodes.Ldfld, mapInfo),
+                        new CodeInstruction(OpCodes.Ldloc_S, 43), //cell location
+                        new CodeInstruction(OpCodes.Call, typeof(Patch_PathFinder).GetMethod(nameof(Patch_PathFinder.AdjustCosts))),
                         new CodeInstruction(OpCodes.Stloc_S, 46)
                     });
+                    ran = true;
                     break;
                 }
             }
+            if (!ran) Log.Warning("[Clean Pathfinding]: Transpiler could not find target. There may be a mod conflict, or RimWorld updated?");
+            else if (ran && Prefs.DevMode) Log.Message("[Clean Pathfinding]: Transpiler complete.");
             return codes.AsEnumerable();
         }
 
-        static public int AdjustCostForHostiles(Pawn pawn, TerrainDef def, int cost)
+        static public int AdjustCosts(Pawn pawn, TerrainDef def, int cost, Map map, int index)
         {
+            //Light factor
+            if (ModSettings_CleanPathfinding.factorLight)
+            {
+                IntVec3 intVec = map.cellIndices.IndexToCell(index); //For some reason I can't seem to get the transpiler to pass along the coordinate to skip refetching it. Will research some more later.
+                var num = map.glowGrid.GameGlowAt(intVec, false);
+                if (num < 0.3f) cost += 2;
+            }
+
+            //Hostiles ignore
             if (pawn != null && pawn.Faction != null && pawn.Faction.HostileTo(Faction.OfPlayer) && terrainCache.ContainsKey(def.GetHashCode()))
             {
                 cost += terrainCache[def.GetHashCode()][1] * -1;
-                if (cost < 0) cost = 0;
             }
+
+            //This is to check if the road bias went too low for some reason
+            if (cost < 0) cost = 0;
             return cost;
         }
     }
