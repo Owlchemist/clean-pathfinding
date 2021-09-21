@@ -24,10 +24,10 @@ namespace CleanPathfinding
 			options.Begin(inRect);
 			options.Label("Dirty terrain avoidance (Mod default: 8, Min: 0, Max: 30): " + bias, -1f, "Owl_BiasToolTip".Translate());
 			bias = (int)options.Slider((float)bias, 0f, 30f);
-			options.Label("Road attraction (Mod default: 5, Min: 0, Max: 10): " + roadBias, -1f, "Owl_RoadBiasToolTip".Translate());
-			roadBias = (int)options.Slider((float)roadBias, 0f, 10f);
-			options.Label("Extra pathfinding range (Mod default: 0, Min: 0, Max: 160): " + extraRange, -1f, "Owl_ExtraRangeToolTip".Translate());
-			extraRange = (int)options.Slider((float)extraRange, 0f, 160f);
+			options.Label("Road attraction (Mod default: 4, Min: 0, Max: 4): " + roadBias, -1f, "Owl_RoadBiasToolTip".Translate());
+			roadBias = (int)options.Slider((float)roadBias, 0f, 4f);
+			options.Label("Extra pathfinding range (Mod default: 0, Min: 0, Max: 230): " + extraRange, -1f, "Owl_ExtraRangeToolTip".Translate());
+			extraRange = (int)options.Slider((float)extraRange, 0f, 230f);
 			options.End();
 			base.DoSettingsWindowContents(inRect);
 		}
@@ -97,13 +97,13 @@ namespace CleanPathfinding
 		public override void ExposeData()
 		{
 			Scribe_Values.Look<int>(ref bias, "bias", 8, false);
-			Scribe_Values.Look<int>(ref roadBias, "roadBias", 5, false);
+			Scribe_Values.Look<int>(ref roadBias, "roadBias", 4, false);
 			Scribe_Values.Look<int>(ref extraRange, "extraRange", 0, false);
 			base.ExposeData();
 		}
 
 		static public int bias = 8;
-		static public int roadBias = 5;
+		static public int roadBias = 4;
 		static public int extraRange = 0;
 	}
 }

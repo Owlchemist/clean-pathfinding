@@ -8,7 +8,6 @@ using System.Reflection.Emit;
 using RimWorld;
 using UnityEngine;
 using static CleanPathfinding.Mod_CleanPathfinding;
-using static CleanPathfinding.ModSettings_CleanPathfinding;
  
 namespace CleanPathfinding
 {
@@ -36,17 +35,16 @@ namespace CleanPathfinding
             var codes = new List<CodeInstruction>(instructions);
             for (int i = 0; i < codes.Count; i++)
             {
-                if (codes[i].opcode == OpCodes.Ldfld && codes[i].OperandIs(rangeInfo))
+                if (codes[i].opcode == OpCodes.Ldloca_S && ((LocalBuilder)codes[i].operand).LocalIndex == 27)
                 {
                     codes.InsertRange(i + 3, new List<CodeInstruction>(){
 
-                        new CodeInstruction(OpCodes.Ldloc_S, 46), //Pathcost total
                         new CodeInstruction(OpCodes.Ldloc_0),
                         new CodeInstruction(OpCodes.Ldloc_S, 12), //topGrid
                         new CodeInstruction(OpCodes.Ldloc_S, 43), //TerrainDef within the grid
                         new CodeInstruction(OpCodes.Ldelem_Ref),
+                        new CodeInstruction(OpCodes.Ldloc_S, 46), //Pathcost total
                         new CodeInstruction(OpCodes.Call, typeof(Patch_PathFinder).GetMethod(nameof(Patch_PathFinder.AdjustCostForHostiles))),
-                        new CodeInstruction(OpCodes.Add),
                         new CodeInstruction(OpCodes.Stloc_S, 46)
                     });
                     break;
@@ -55,9 +53,14 @@ namespace CleanPathfinding
             return codes.AsEnumerable();
         }
 
-        static public int AdjustCostForHostiles(Pawn pawn, TerrainDef def)
+        static public int AdjustCostForHostiles(Pawn pawn, TerrainDef def, int cost)
         {
-            return (pawn != null && pawn.Faction != null && pawn.Faction.HostileTo(Faction.OfPlayer) && terrainCache.ContainsKey(def.GetHashCode())) ? (terrainCache[def.GetHashCode()][1] * -1) : 0;
+            if (pawn != null && pawn.Faction != null && pawn.Faction.HostileTo(Faction.OfPlayer) && terrainCache.ContainsKey(def.GetHashCode()))
+            {
+                cost += terrainCache[def.GetHashCode()][1] * -1;
+                if (cost < 0) cost = 0;
+            }
+            return cost;
         }
     }
 
