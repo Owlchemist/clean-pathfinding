@@ -33,7 +33,6 @@ namespace CleanPathfinding
             var mapInfo = AccessTools.Field(typeof(PathFinder), "map");
             var rangeInfo = AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraNonDraftedPerceivedPathCost));
             bool ran = false;
-                
             var codes = new List<CodeInstruction>(instructions);
             for (int i = 0; i < codes.Count; i++)
             {
@@ -56,8 +55,8 @@ namespace CleanPathfinding
                     break;
                 }
             }
-            if (!ran) Log.Warning("[Clean Pathfinding]: Transpiler could not find target. There may be a mod conflict, or RimWorld updated?");
-            else if (ran && Prefs.DevMode) Log.Message("[Clean Pathfinding]: Transpiler complete.");
+            if (!ran) Log.Warning("[Clean Pathfinding] Transpiler could not find target. There may be a mod conflict, or RimWorld updated?");
+            //else if (ran && Prefs.DevMode) Log.Message("[Clean Pathfinding] Loading complete");
             return codes.AsEnumerable();
         }
 
