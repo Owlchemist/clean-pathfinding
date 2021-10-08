@@ -29,6 +29,8 @@ namespace CleanPathfinding
 			options.Label("Extra pathfinding range (Mod default: 0, Min: 0, Max: 230): " + extraRange, -1f, "Owl_ExtraRangeToolTip".Translate());
 			extraRange = (int)options.Slider((float)extraRange, 0f, 230f);
 			options.CheckboxLabeled("Pathfinding should factor light", ref factorLight, "Owl_FactorLight".Translate());
+			options.CheckboxLabeled("Pawn ignore rules if carrying another pawn", ref factorCarryingPawn, "Owl_FactorCarryingPawn".Translate());
+			options.CheckboxLabeled("Pawns ignore rules if bleeding", ref factorBleeding, "Owl_FactorBleeding".Translate());
 			options.End();
 			base.DoSettingsWindowContents(inRect);
 		}
@@ -107,6 +109,8 @@ namespace CleanPathfinding
 			Scribe_Values.Look<int>(ref roadBias, "roadBias", 4, false);
 			Scribe_Values.Look<int>(ref extraRange, "extraRange", 0, false);
 			Scribe_Values.Look<bool>(ref factorLight, "factorLight", false, false);
+			Scribe_Values.Look<bool>(ref factorCarryingPawn, "factorCarryingPawn", false, false);
+			Scribe_Values.Look<bool>(ref factorBleeding, "factorBleeding", false, false);
 			base.ExposeData();
 		}
 
@@ -114,5 +118,7 @@ namespace CleanPathfinding
 		static public int roadBias = 4;
 		static public int extraRange = 0;
 		static public bool factorLight = false;
+		static public bool factorCarryingPawn = false;
+		static public bool factorBleeding = false;
 	}
 }
