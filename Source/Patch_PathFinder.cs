@@ -32,14 +32,14 @@ namespace CleanPathfinding
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             var mapInfo = AccessTools.Field(typeof(PathFinder), "map");
-            var rangeInfo = AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraNonDraftedPerceivedPathCost));
-            bool ran = false;
-            var codes = new List<CodeInstruction>(instructions);
-            for (int i = 0; i < codes.Count; i++)
-            {
-                if (codes[i].opcode == OpCodes.Ldfld && codes[i].OperandIs(rangeInfo))
-                {
-                    codes.InsertRange(i + 3, new List<CodeInstruction>(){
+var rangeInfo = AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraNonDraftedPerceivedPathCost));
+bool ran = false;
+var codes = new List<CodeInstruction>(instructions);
+for (int i = 0; i < codes.Count; i++)
+{
+	if (codes[i].opcode == OpCodes.Ldfld && codes[i].OperandIs(rangeInfo))
+	{
+		codes.InsertRange(i + 3, new List<CodeInstruction>(){
 
                         new CodeInstruction(OpCodes.Ldloc_0),
                         new CodeInstruction(OpCodes.Ldloc_S, 12), //topGrid
@@ -71,7 +71,7 @@ namespace CleanPathfinding
                 if (num < 0.3f) cost += 2;
             }
 
-            //Check other factors: carry apwn check, hostile check, bleeding check
+            //Check other factors: carry pawn check, hostile check, bleeding check
             if (pawn?.Faction != null
                 && ((factorCarryingPawn && pawn.IsCarryingPawn()) 
                 || pawn.Faction.HostileTo(Faction.OfPlayer) 
