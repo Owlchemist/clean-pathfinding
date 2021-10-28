@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<LanguageData>
+	<CleanPathfinding.Settings.Bias>Dirty terrain avoidance (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.Bias>
+	<CleanPathfinding.Settings.Bias.Desc>Extra percieved pathcost to apply to filth-generating terrain tiles.</CleanPathfinding.Settings.Bias.Desc>
+	
+	<CleanPathfinding.Settings.RoadBias>Road attraction (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.RoadBias>
+	<CleanPathfinding.Settings.RoadBias.Desc>A reduction of percieved pathcost for any tiles with the "Road" tag.</CleanPathfinding.Settings.RoadBias.Desc>
+	
+	<CleanPathfinding.Settings.ExtraRange>Extra pathfinding range (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.ExtraRange>
+	<CleanPathfinding.Settings.ExtraRange.Desc>An additional range modifier on calculating paths, potentially at a performance expense.</CleanPathfinding.Settings.ExtraRange.Desc>
+	
+	<CleanPathfinding.Settings.FactorLight>Pathfinding should factor light</CleanPathfinding.Settings.FactorLight>
+	<CleanPathfinding.Settings.FactorLight.Desc>Pawns will factor and bias lit paths. This extra calculation has a small performance impact.</CleanPathfinding.Settings.FactorLight.Desc>
+	
+	<CleanPathfinding.Settings.FactorCarryingPawn>Pawn ignore rules if carrying another pawn</CleanPathfinding.Settings.FactorCarryingPawn>
+	<CleanPathfinding.Settings.FactorCarryingPawn.Desc>Pawns will ignore rules if they're carrying another pawn.</CleanPathfinding.Settings.FactorCarryingPawn.Desc>
+	
+	<CleanPathfinding.Settings.FactorBleeding>Pawns ignore rules if bleeding</CleanPathfinding.Settings.FactorBleeding>
+	<CleanPathfinding.Settings.FactorBleeding.Desc>Pawns will ignore rules if they're bleeding more than 10%/d.</CleanPathfinding.Settings.FactorBleeding.Desc>
+</LanguageData>

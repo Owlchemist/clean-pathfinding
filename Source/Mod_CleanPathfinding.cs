@@ -3,8 +3,6 @@ using Verse;
 using HarmonyLib;
 using System.Linq;
 using UnityEngine;
-using RimWorld;
-using System;
 using System.Collections.Generic;
 using static CleanPathfinding.ModSettings_CleanPathfinding;
  
@@ -16,21 +14,32 @@ namespace CleanPathfinding
 		{
 			new Harmony(this.Content.PackageIdPlayerFacing).PatchAll();
 			base.GetSettings<ModSettings_CleanPathfinding>();
+			LongEventHandler.QueueLongEvent(() => Setup(), null, false, null);
+		}
+
+		void Setup()
+		{
+			DefDatabase<TerrainDef>.AllDefs.Where(x => x.generatedFilth != null || (x.tags != null && x.tags.Contains("Road"))).ToList().ForEach(y => 
+            {
+                terrainCache.Add(y.GetHashCode(),new int[2]{ y.extraNonDraftedPerceivedPathCost, 0 });
+                //Log.Message(y.defName + " is " + y.GetHashCode().ToString());
+            });
+            Mod_CleanPathfinding.UpdatePathCosts();
 		}
 
 		public override void DoSettingsWindowContents(Rect inRect)
 		{
 			Listing_Standard options = new Listing_Standard();
 			options.Begin(inRect);
-			options.Label("Dirty terrain avoidance (Mod default: 8, Min: 0, Max: 30): " + bias, -1f, "Owl_BiasToolTip".Translate());
+			options.Label("CleanPathfinding.Settings.Bias".Translate("8", "0", "30") + bias, -1f, "CleanPathfinding.Settings.Bias.Desc".Translate());
 			bias = (int)options.Slider((float)bias, 0f, 30f);
-			options.Label("Road attraction (Mod default: 4, Min: 0, Max: 4): " + roadBias, -1f, "Owl_RoadBiasToolTip".Translate());
+			options.Label("CleanPathfinding.Settings.RoadBias".Translate("4", "0", "4") + roadBias, -1f, "CleanPathfinding.Settings.RoadBias.Desc".Translate());
 			roadBias = (int)options.Slider((float)roadBias, 0f, 4f);
-			options.Label("Extra pathfinding range (Mod default: 0, Min: 0, Max: 230): " + extraRange, -1f, "Owl_ExtraRangeToolTip".Translate());
+			options.Label("CleanPathfinding.Settings.ExtraRange".Translate("0", "0", "230") + extraRange, -1f, "CleanPathfinding.Settings.ExtraRange.Desc".Translate());
 			extraRange = (int)options.Slider((float)extraRange, 0f, 230f);
-			options.CheckboxLabeled("Pathfinding should factor light", ref factorLight, "Owl_FactorLight".Translate());
-			options.CheckboxLabeled("Pawn ignore rules if carrying another pawn", ref factorCarryingPawn, "Owl_FactorCarryingPawn".Translate());
-			options.CheckboxLabeled("Pawns ignore rules if bleeding", ref factorBleeding, "Owl_FactorBleeding".Translate());
+			options.CheckboxLabeled("CleanPathfinding.Settings.FactorLight".Translate(), ref factorLight, "CleanPathfinding.Settings.FactorLight.Desc".Translate());
+			options.CheckboxLabeled("CleanPathfinding.Settings.FactorCarryingPawn".Translate(), ref factorCarryingPawn, "CleanPathfinding.Settings.FactorCarryingPawn.Desc".Translate());
+			options.CheckboxLabeled("CleanPathfinding.Settings.FactorBleeding".Translate(), ref factorBleeding, "CleanPathfinding.Settings.FactorBleeding.Desc".Translate());
 			options.End();
 			base.DoSettingsWindowContents(inRect);
 		}

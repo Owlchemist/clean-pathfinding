@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<LanguageData>
-	<Owl_BiasToolTip>Extra percieved pathcost to apply to filth-generating terrain tiles.</Owl_BiasToolTip>
-	<Owl_RoadBiasToolTip>A reduction of percieved pathcost for any tiles with the "Toad" tag.</Owl_RoadBiasToolTip>
-	<Owl_ExtraRangeToolTip>An additional range modifier on calculating paths, potentially at the expensive of game performance.</Owl_ExtraRangeToolTip>
-</LanguageData>

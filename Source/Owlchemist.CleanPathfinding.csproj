@@ -47,8 +47,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Mod_CleanPathfinding.cs" />
-    <Compile Include="Patch_PathFinder.cs" />
+    <Compile Include="*.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
