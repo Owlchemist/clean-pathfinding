@@ -7,7 +7,7 @@ using System.Linq;
 using System.Reflection.Emit;
 using RimWorld;
 using UnityEngine;
-using static CleanPathfinding.Mod_CleanPathfinding;
+using static CleanPathfinding.CleanPathfindingUtility;
 using static CleanPathfinding.ModSettings_CleanPathfinding;
  
 namespace CleanPathfinding
