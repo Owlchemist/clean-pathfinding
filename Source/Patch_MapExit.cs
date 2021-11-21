@@ -19,7 +19,7 @@ namespace CleanPathfinding
             {
 	            if (codes[i].opcode == OpCodes.Ldc_I4_S)
 	            {
-		            codes.InsertRange(i, new List<CodeInstruction>(){
+		            codes.InsertRange(i + 1, new List<CodeInstruction>(){
 
                         new CodeInstruction(OpCodes.Ldsfld, field),
                         new CodeInstruction(OpCodes.Add)
