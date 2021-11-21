@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <LanguageData>
+	<CleanPathfinding.Settings.Header.Tuning>Tuning:</CleanPathfinding.Settings.Header.Tuning>
+	<CleanPathfinding.Settings.Header.Rules>Rules:</CleanPathfinding.Settings.Header.Rules>
+	<CleanPathfinding.Settings.Header.Misc>Misc:</CleanPathfinding.Settings.Header.Misc>
+	
 	<CleanPathfinding.Settings.Bias>Dirty terrain avoidance (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.Bias>
 	<CleanPathfinding.Settings.Bias.Desc>Extra percieved pathcost to apply to filth-generating terrain tiles.</CleanPathfinding.Settings.Bias.Desc>
+	
+	<CleanPathfinding.Settings.NaturalBias>Clean stone terrain avoidance (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.NaturalBias>
+	<CleanPathfinding.Settings.NaturalBias.Desc>Since stone terrain does not generate filth, the above setting may cause pawns be overly attracted to walking upon it, depending on the map layout. You can tinker with this setting if you're trying to avoid this behavior.</CleanPathfinding.Settings.NaturalBias.Desc>
 	
 	<CleanPathfinding.Settings.RoadBias>Road attraction (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.RoadBias>
 	<CleanPathfinding.Settings.RoadBias.Desc>A reduction of percieved pathcost for any tiles with the "Road" tag.</CleanPathfinding.Settings.RoadBias.Desc>
@@ -17,4 +24,8 @@
 	
 	<CleanPathfinding.Settings.FactorBleeding>Pawns ignore rules if bleeding</CleanPathfinding.Settings.FactorBleeding>
 	<CleanPathfinding.Settings.FactorBleeding.Desc>Pawns will ignore rules if they're bleeding more than 10%/d.</CleanPathfinding.Settings.FactorBleeding.Desc>
+	
+	<CleanPathfinding.Settings.ExitRange.Warning>Only use exit tuning if you play on an unusual map and notice pawns getting stuck trying to find the map exit.</CleanPathfinding.Settings.ExitRange.Warning>
+	<CleanPathfinding.Settings.ExitRange>Exit range (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.ExitRange>
+	<CleanPathfinding.Settings.ExitRange.Desc>Pawns look around them for an exit, each time looking +4 tiles farther and farther out. In vanilla they give up after 30 iterations. This slider increases the number of iterations to make their exit finding more aggressive.</CleanPathfinding.Settings.ExitRange.Desc>
 </LanguageData>

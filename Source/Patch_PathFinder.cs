@@ -17,7 +17,7 @@ namespace CleanPathfinding
     {
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
-            var mapInfo = AccessTools.Field(typeof(PathFinder), "map");
+            var mapInfo = AccessTools.Field(typeof(PathFinder), nameof(PathFinder.map));
             var rangeInfo = AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraNonDraftedPerceivedPathCost));
             bool ran = false;
             var codes = new List<CodeInstruction>(instructions);
@@ -43,45 +43,59 @@ namespace CleanPathfinding
                 }
             }
             if (!ran) Log.Warning("[Clean Pathfinding] Transpiler could not find target. There may be a mod conflict, or RimWorld updated?");
-            //else if (ran && Prefs.DevMode) Log.Message("[Clean Pathfinding] Loading complete");
             return codes.AsEnumerable();
         }
 
         static public int AdjustCosts(Pawn pawn, TerrainDef def, int cost, Map map, int index)
         {
             //Light factor
-            if (factorLight)
+            if (factorLight && GameGlowAtFast(map, index) < 0.3f) cost += 2;
+ 
+            //This will revert the terrain costs back to normal if...
+            Faction faction = pawn?.Faction;
+            if
+            (
+                faction != null &&
+                (
+                    (factorCarryingPawn && pawn.IsCarryingPawn()) || //Check carry rule
+                    faction.HostileTo(Current.gameInt.worldInt.factionManager.ofPlayer) || //Is an enemy?
+                    (factorBleeding && pawn.health.hediffSet.BleedRateTotal > 0.1f) //Is bleeding?
+                )
+            )
             {
-                IntVec3 intVec = map.cellIndices.IndexToCell(index); //For some reason I can't seem to get the transpiler to pass along the coordinate to skip refetching it. Will research some more later.
-                var num = map.glowGrid.GameGlowAt(intVec, false);
-                if (num < 0.3f) cost += 2;
-            }
-
-            //Check other factors: carry pawn check, hostile check, bleeding check
-            if (pawn?.Faction != null
-                && ((factorCarryingPawn && pawn.IsCarryingPawn()) 
-                || pawn.Faction.HostileTo(Faction.OfPlayer) 
-                || (factorBleeding && pawn.health.hediffSet.BleedRateTotal > 0.1f)) 
-                && terrainCache.ContainsKey(def.GetHashCode()))
-            {
-                cost += terrainCache[def.GetHashCode()][1] * -1;
+                if (terrainCache.ContainsKey(def.shortHash)) cost += terrainCache[def.shortHash][1] * -1;
             }
             
-            //This is to check if the road bias went too low for some reason
-            if (cost < 0) cost = 0;
-            return cost;
+            return cost < 0 ? 0 : cost;
         }
+
+        public static float GameGlowAtFast(Map map, int index)
+		{
+			float daylight = 0f;
+			if (map.roofGrid.roofGrid[index] != null)
+			{
+				daylight = map.skyManager.curSkyGlowInt;
+				if (daylight == 1f)
+				{
+					return daylight;
+				}
+			}
+			Color32 color = map.glowGrid.glowGrid[index];
+			if (color.a == 1) return 1f;
+
+			return System.Math.Max(daylight, System.Math.Min(0.5f, (float)(color.r + color.g + color.b) / 3f / 255f * 3.6f));
+		}
     }
 
-    [HarmonyPatch (typeof(PathFinder), "DetermineHeuristicStrength")]
+    [HarmonyPatch (typeof(PathFinder), nameof(PathFinder.DetermineHeuristicStrength))]
     static class Patch_DetermineHeuristicStrength
     {
         static bool Prefix(ref float __result, Pawn pawn, IntVec3 start, LocalTargetInfo dest)
         {
-            if (Custom_DistanceCurve == null || (pawn != null && pawn.RaceProps.Animal)) return true;
+            if (Custom_DistanceCurve == null || (pawn?.RaceProps.Animal ?? false)) return true;
             
             float lengthHorizontal = (start - dest.Cell).LengthHorizontal;
-            __result = (float)Mathf.RoundToInt(Custom_DistanceCurve.Evaluate(lengthHorizontal));
+            __result = (float)System.Math.Round(Custom_DistanceCurve.Evaluate(lengthHorizontal));
             return false;
         }
     }

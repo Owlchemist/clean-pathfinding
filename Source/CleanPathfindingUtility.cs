@@ -1,8 +1,6 @@
 
 using Verse;
-using HarmonyLib;
 using System.Linq;
-using UnityEngine;
 using System.Collections.Generic;
 using static CleanPathfinding.ModSettings_CleanPathfinding;
  
@@ -10,64 +8,76 @@ namespace CleanPathfinding
 {
     public static class CleanPathfindingUtility
 	{	
-		public static Dictionary<int, int[]> terrainCache = new Dictionary<int, int[]>();
+		public static Dictionary<ushort, int[]> terrainCache = new Dictionary<ushort, int[]>();
 		public static SimpleCurve Custom_DistanceCurve;
+		static List<string> report = new List<string>();
 		public static void Setup()
 		{
-			DefDatabase<TerrainDef>.AllDefs.Where(x => 
-			x.generatedFilth != null
-			|| (x.tags != null && x.tags.Contains("Road"))
-			|| (x.generatedFilth == null && (x.defName.Contains("_Rough") || x.defName.Contains("_RoughHewn")))).ToList().ForEach(y => 
-            {
-                terrainCache.Add(y.GetHashCode(),new int[2]{ y.extraNonDraftedPerceivedPathCost, 0 });
-                //Log.Message(y.defName + " is " + y.GetHashCode().ToString());
-            });
+			DefDatabase<TerrainDef>.AllDefsListForReading.ForEach
+			(x => 
+	            {
+					if
+					(
+						x.generatedFilth != null || //Generates filth?
+						(x.tags?.Contains("Road") ?? false) || //Is a road?
+						(x.generatedFilth == null && (x.defName.Contains("_Rough") || x.defName.Contains("_RoughHewn"))) //Is clean but avoided regardless?
+					)
+					{
+						terrainCache.Add(x.shortHash, new int[] { x.extraNonDraftedPerceivedPathCost, 0 } );
+						//Log.Message(x.defName + " is " + x.shortHash.ToString());
+					}
+            	}
+			);
             UpdatePathCosts();
 		}
 
 		public static void UpdatePathCosts()
 		{
 			//Reset the cache
+			report?.Clear();
 			terrainCache?.ToList().ForEach(x => x.Value[1] = 0);
-			DefDatabase<TerrainDef>.AllDefs.Where(x => terrainCache.ContainsKey(x.GetHashCode()))?.ToList().ForEach(y => 
-				y.extraNonDraftedPerceivedPathCost = terrainCache[y.GetHashCode()][0]);
 
-			//Avoid filth
-			if (bias > 0)
-			{
-				DefDatabase<TerrainDef>.AllDefs.Where(x => x.generatedFilth != null).ToList().ForEach(y => 
+			DefDatabase<TerrainDef>.AllDefsListForReading.ForEach
+			(x => 
 				{
-					y.extraNonDraftedPerceivedPathCost += bias; 
-					terrainCache[y.GetHashCode()][1] = bias;
-				});
-			}
-			if (naturalBias > 0)
-			{
-				//Targetting the renderPrecedence was the only way I could think to universally targe the procedurally generated terraindefs
-				DefDatabase<TerrainDef>.AllDefs.Where(x => 
-				x.generatedFilth == null && (x.defName.Contains("_Rough") || x.defName.Contains("_RoughHewn"))).ToList().ForEach(y => 
-				{
-					y.extraNonDraftedPerceivedPathCost += naturalBias; 
-					terrainCache[y.GetHashCode()][1] += naturalBias;
-				});
-			}
-			//Attraction to roads
-			if (roadBias > 0)
-			{
-				DefDatabase<TerrainDef>.AllDefs.Where(x => x.tags != null && x.tags.Contains("Road")).ToList().ForEach(y => 
-				{
-					y.extraNonDraftedPerceivedPathCost -= roadBias;
-					terrainCache[y.GetHashCode()][1] -= roadBias;
-				});
-			}
+					var hash = x.shortHash;
+					//Reset to original value
+					if (terrainCache.ContainsKey(hash)) x.extraNonDraftedPerceivedPathCost = terrainCache[hash][0];
+					
+					//Avoid filth
+					if (bias > 0 && x.generatedFilth != null)
+					{
+						x.extraNonDraftedPerceivedPathCost += bias; 
+						terrainCache[hash][1] = bias;
+					}
 
-			List<string> report = new List<string>();
-			//Debug
+					//Clean but natural terrain bias
+					if (naturalBias > 0 && x.generatedFilth == null && (x.defName.Contains("_Rough") || x.defName.Contains("_RoughHewn")))
+					{
+						x.extraNonDraftedPerceivedPathCost += naturalBias; 
+						terrainCache[hash][1] += naturalBias;
+					}
+
+					//Attraction to roads
+					if (roadBias > 0 && (x.tags?.Contains("Road") ?? false))
+					{
+						x.extraNonDraftedPerceivedPathCost -= roadBias;
+						terrainCache[hash][1] -= roadBias;
+					}
+
+					//Debug
+					if (logging && Prefs.DevMode)
+					{
+						report.Add(x.defName + ": " + x.extraNonDraftedPerceivedPathCost);
+					}
+				}
+			);
+
+			//Debug print
 			if (logging && Prefs.DevMode)
 			{
-					DefDatabase<TerrainDef>.AllDefs.ToList().ForEach(x => report.Add(x.defName + ": " + x.extraNonDraftedPerceivedPathCost));
-					report.Sort();
-					Log.Message("[Clean Pathfinding] Terrain report:\n" + string.Join("\n - ", report));
+				report.Sort();
+				Log.Message("[Clean Pathfinding] Terrain report:\n" + string.Join("\n - ", report));
 			}
 
 			//Reset the extra pathfinding range curve
@@ -85,10 +95,9 @@ namespace CleanPathfinding
 						true
 				}};
 			}
-			
 
 			//If playing, update the pathfinders now
-			if (Find.World != null) Find.Maps.ForEach(x => x.pathing.RecalculateAllPerceivedPathCosts());
+			if (Current.ProgramState == ProgramState.Playing) Find.Maps.ForEach(x => x.pathing.RecalculateAllPerceivedPathCosts());
 		}
 	}
 }

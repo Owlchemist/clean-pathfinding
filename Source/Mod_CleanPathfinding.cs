@@ -20,6 +20,10 @@ namespace CleanPathfinding
 		{
 			Listing_Standard options = new Listing_Standard();
 			options.Begin(inRect);
+			options.Gap();
+			options.Label("CleanPathfinding.Settings.Header.Tuning".Translate());
+			options.GapLine(); //======================================
+
 			options.Label("CleanPathfinding.Settings.Bias".Translate("8", "0", "30") + bias, -1f, "CleanPathfinding.Settings.Bias.Desc".Translate());
 			bias = (int)options.Slider((float)bias, 0f, 30f);
 
@@ -32,9 +36,19 @@ namespace CleanPathfinding
 			options.Label("CleanPathfinding.Settings.ExtraRange".Translate("0", "0", "230") + extraRange, -1f, "CleanPathfinding.Settings.ExtraRange.Desc".Translate());
 			extraRange = (int)options.Slider((float)extraRange, 0f, 230f);
 
+			options.Gap();
+			options.Label("CleanPathfinding.Settings.Header.Rules".Translate());
+			options.GapLine(); //======================================
 			options.CheckboxLabeled("CleanPathfinding.Settings.FactorLight".Translate(), ref factorLight, "CleanPathfinding.Settings.FactorLight.Desc".Translate());
 			options.CheckboxLabeled("CleanPathfinding.Settings.FactorCarryingPawn".Translate(), ref factorCarryingPawn, "CleanPathfinding.Settings.FactorCarryingPawn.Desc".Translate());
 			options.CheckboxLabeled("CleanPathfinding.Settings.FactorBleeding".Translate(), ref factorBleeding, "CleanPathfinding.Settings.FactorBleeding.Desc".Translate());
+
+			options.Gap();
+			options.Label("CleanPathfinding.Settings.Header.Misc".Translate());
+			options.GapLine(); //======================================
+			options.Label("CleanPathfinding.Settings.ExitRange.Warning".Translate());
+			options.Label("CleanPathfinding.Settings.ExitRange".Translate("0", "0", "200") + exitRange, -1f, "CleanPathfinding.Settings.ExitRange.Desc".Translate());
+			exitRange = (int)options.Slider((float)exitRange, 0f, 200f);
 			if (Prefs.DevMode) options.CheckboxLabeled("DevMode: Enable logging", ref logging, null);
 			options.End();
 			base.DoSettingsWindowContents(inRect);
@@ -53,26 +67,21 @@ namespace CleanPathfinding
 	}
 
 	public class ModSettings_CleanPathfinding : ModSettings
-		{
+	{
 		public override void ExposeData()
 		{
 			Scribe_Values.Look<int>(ref bias, "bias", 8, false);
 			Scribe_Values.Look<int>(ref naturalBias, "naturalBias", 4, false);
 			Scribe_Values.Look<int>(ref roadBias, "roadBias", 4, false);
 			Scribe_Values.Look<int>(ref extraRange, "extraRange", 0, false);
-			Scribe_Values.Look<bool>(ref factorLight, "factorLight", false, false);
-			Scribe_Values.Look<bool>(ref factorCarryingPawn, "factorCarryingPawn", false, false);
-			Scribe_Values.Look<bool>(ref factorBleeding, "factorBleeding", false, false);
+			Scribe_Values.Look<bool>(ref factorLight, "factorLight", true, false);
+			Scribe_Values.Look<bool>(ref factorCarryingPawn, "factorCarryingPawn", true, false);
+			Scribe_Values.Look<bool>(ref factorBleeding, "factorBleeding", true, false);
+			Scribe_Values.Look<int>(ref exitRange, "exitRange", 0, false);
 			base.ExposeData();
 		}
 
-		static public int bias = 8;
-		static public int naturalBias = 4;
-		static public int roadBias = 4;
-		static public int extraRange = 0;
-		static public bool factorLight = false;
-		static public bool factorCarryingPawn = false;
-		static public bool factorBleeding = false;
-		public static bool logging = false;
+		static public int bias = 8, naturalBias = 4, roadBias = 4, extraRange, exitRange;
+		static public bool factorLight = true, factorCarryingPawn = true, factorBleeding = true, logging;
 	}
 }
