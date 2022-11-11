@@ -29,14 +29,14 @@ namespace CleanPathfinding
 
                         new CodeInstruction(OpCodes.Ldloc_0),
                         new CodeInstruction(OpCodes.Ldloc_S, 12), //topGrid
-                        new CodeInstruction(OpCodes.Ldloc_S, 43), //TerrainDef within the grid
+                        new CodeInstruction(OpCodes.Ldloc_S, 45), //TerrainDef within the grid
                         new CodeInstruction(OpCodes.Ldelem_Ref),
-                        new CodeInstruction(OpCodes.Ldloc_S, 46), //Pathcost total
+                        new CodeInstruction(OpCodes.Ldloc_S, 48), //Pathcost total
                         new CodeInstruction(OpCodes.Ldarg_0),
                         new CodeInstruction(OpCodes.Ldfld, mapInfo),
-                        new CodeInstruction(OpCodes.Ldloc_S, 43), //cell location
+                        new CodeInstruction(OpCodes.Ldloc_S, 45), //cell location
                         new CodeInstruction(OpCodes.Call, typeof(Patch_PathFinder).GetMethod(nameof(Patch_PathFinder.AdjustCosts))),
-                        new CodeInstruction(OpCodes.Stloc_S, 46)
+                        new CodeInstruction(OpCodes.Stloc_S, 48)
                     });
                     ran = true;
                     break;
@@ -80,7 +80,7 @@ namespace CleanPathfinding
 					return daylight;
 				}
 			}
-			Color32 color = map.glowGrid.glowGrid[index];
+			ColorInt color = map.glowGrid.glowGrid[index];
 			if (color.a == 1) return 1f;
 
 			return System.Math.Max(daylight, System.Math.Min(0.5f, (float)(color.r + color.g + color.b) / 3f / 255f * 3.6f));
