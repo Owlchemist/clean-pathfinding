@@ -18,8 +18,8 @@ namespace CleanPathfinding
 				if
 				(
 					terrainDef.generatedFilth != null || //Generates filth?
-					(terrainDef.tags?.Contains("Road") ?? false) || //Is a road?
-					(terrainDef.generatedFilth == null && (terrainDef.defName.Contains("_Rough") || terrainDef.defName.Contains("_RoughHewn"))) //Is clean but avoided regardless?
+					(terrainDef.tags?.Contains("CleanPath") ?? false) || //Is a road?
+					(terrainDef.generatedFilth == null && (terrainDef.defName.Contains("_Rough"))) //Is clean but avoided regardless?
 				) terrainCache.Add(terrainDef.shortHash, new int[] { terrainDef.extraNonDraftedPerceivedPathCost, 0 } );
 			}
             UpdatePathCosts();
@@ -47,14 +47,14 @@ namespace CleanPathfinding
 					}
 
 					//Clean but natural terrain bias
-					if (naturalBias > 0 && terrainDef.generatedFilth == null && (terrainDef.defName.Contains("_Rough") || terrainDef.defName.Contains("_RoughHewn")))
+					if (naturalBias > 0 && terrainDef.generatedFilth == null && (terrainDef.defName.Contains("_Rough")))
 					{
 						terrainDef.extraNonDraftedPerceivedPathCost += naturalBias; 
 						terrainCache[hash][1] += naturalBias;
 					}
 
 					//Attraction to roads
-					if (roadBias > 0 && (terrainDef.tags?.Contains("Road") ?? false))
+					if (roadBias > 0 && (terrainDef.tags?.Contains("CleanPath") ?? false))
 					{
 						terrainDef.extraNonDraftedPerceivedPathCost -= roadBias;
 						terrainCache[hash][1] -= roadBias;

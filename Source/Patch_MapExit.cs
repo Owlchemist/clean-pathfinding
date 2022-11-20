@@ -12,24 +12,25 @@ namespace CleanPathfinding
     {
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
-            var field = AccessTools.Field(typeof(ModSettings_CleanPathfinding), nameof(ModSettings_CleanPathfinding.exitRange));
-            bool ran = false;
-            var codes = new List<CodeInstruction>(instructions);
-            for (int i = 0; i < codes.Count; i++)
+            if (!ModSettings_CleanPathfinding.exitTuning)
             {
-	            if (codes[i].opcode == OpCodes.Ldc_I4_S)
-	            {
-		            codes.InsertRange(i + 1, new List<CodeInstruction>(){
+                foreach (var code in instructions) yield return code;
+                yield break;
+            }
 
-                        new CodeInstruction(OpCodes.Ldsfld, field),
-                        new CodeInstruction(OpCodes.Add)
-                    });
+            bool ran = false;
+            foreach (var code in instructions)
+            {
+                yield return code;
+                if (code.opcode == OpCodes.Ldc_I4_S)
+                {
+                    yield return new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(ModSettings_CleanPathfinding), nameof(ModSettings_CleanPathfinding.exitRange)));
+                    yield return new CodeInstruction(OpCodes.Add);
                     ran = true;
-                    break;
                 }
             }
-            if (!ran) Log.Warning("[Clean Pathfinding] Transpiler could not find target for exit range patch. There may be a mod conflict, or RimWorld updated?");
-            return codes.AsEnumerable();
+            
+            if (!ran) Log.Warning("[Clean Pathfinding] Transpiler could not find target for exit finding patch. There may be a mod conflict, or RimWorld updated?");
         }
 	}
 }

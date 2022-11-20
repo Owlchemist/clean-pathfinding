@@ -3,10 +3,8 @@ using Verse;
 using Verse.AI;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection.Emit;
 using RimWorld;
-using UnityEngine;
 using static CleanPathfinding.CleanPathfindingUtility;
 using static CleanPathfinding.ModSettings_CleanPathfinding;
  
@@ -17,53 +15,57 @@ namespace CleanPathfinding
     {
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
-            var mapInfo = AccessTools.Field(typeof(PathFinder), nameof(PathFinder.map));
-            var rangeInfo = AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraNonDraftedPerceivedPathCost));
             bool ran = false;
-            var codes = new List<CodeInstruction>(instructions);
-            for (int i = 0; i < codes.Count; i++)
+            int offset = -1;
+            foreach (var code in instructions)
             {
-	            if (codes[i].opcode == OpCodes.Ldfld && codes[i].OperandIs(rangeInfo))
-	            {
-		            codes.InsertRange(i + 3, new List<CodeInstruction>(){
+                yield return code;
+                if (offset == -1 && code.opcode == OpCodes.Ldfld && code.OperandIs(AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraNonDraftedPerceivedPathCost))))
+                {
+                    offset = 0;
+                    continue;
+                }
+                if (offset > -1 && ++offset == 2)
+                {
+                    yield return new CodeInstruction(OpCodes.Ldloc_0);
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, 12); //topGrid
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, 45); //TerrainDef within the grid
+                    yield return new CodeInstruction(OpCodes.Ldelem_Ref);
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, 48); //Pathcost total
+                    yield return new CodeInstruction(OpCodes.Ldarg_0);
+                    yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(PathFinder), nameof(PathFinder.map)));
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, 45); //cell location
+                    yield return new CodeInstruction(OpCodes.Call, typeof(Patch_PathFinder).GetMethod(nameof(Patch_PathFinder.AdjustCosts)));
+                    yield return new CodeInstruction(OpCodes.Stloc_S, 48);
 
-                        new CodeInstruction(OpCodes.Ldloc_0),
-                        new CodeInstruction(OpCodes.Ldloc_S, 12), //topGrid
-                        new CodeInstruction(OpCodes.Ldloc_S, 45), //TerrainDef within the grid
-                        new CodeInstruction(OpCodes.Ldelem_Ref),
-                        new CodeInstruction(OpCodes.Ldloc_S, 48), //Pathcost total
-                        new CodeInstruction(OpCodes.Ldarg_0),
-                        new CodeInstruction(OpCodes.Ldfld, mapInfo),
-                        new CodeInstruction(OpCodes.Ldloc_S, 45), //cell location
-                        new CodeInstruction(OpCodes.Call, typeof(Patch_PathFinder).GetMethod(nameof(Patch_PathFinder.AdjustCosts))),
-                        new CodeInstruction(OpCodes.Stloc_S, 48)
-                    });
                     ran = true;
-                    break;
                 }
             }
+            
             if (!ran) Log.Warning("[Clean Pathfinding] Transpiler could not find target. There may be a mod conflict, or RimWorld updated?");
-            return codes.AsEnumerable();
         }
 
         static public int AdjustCosts(Pawn pawn, TerrainDef def, int cost, Map map, int index)
         {
-            //Light factor
-            if (factorLight && GameGlowAtFast(map, index) < 0.3f) cost += 2;
- 
-            //This will revert the terrain costs back to normal if...
+            //Revert path costs based on rules, also factor light
             Faction faction = pawn?.Faction;
-            if
-            (
-                faction != null &&
-                (
-                    (factorCarryingPawn && pawn.IsCarryingPawn()) || //Check carry rule
-                    faction.HostileTo(Current.gameInt.worldInt.factionManager.ofPlayer) || //Is an enemy?
-                    (factorBleeding && pawn.health.hediffSet.BleedRateTotal > 0.1f) //Is bleeding?
-                )
-            )
+            if (faction != null && pawn.def.race.intelligence >= Intelligence.Humanlike)
             {
-                if (terrainCache.ContainsKey(def.shortHash)) cost += terrainCache[def.shortHash][1] * -1;
+                bool revert = false;
+                if (!faction.def.isPlayer && faction.HostileTo(Current.gameInt.worldInt.factionManager.ofPlayer)) revert = true;
+                //Light factor
+                else
+                {
+                    if (factorLight && GameGlowAtFast(map, index) < 0.3f) cost += 2;
+                    if (doorPathing && DoorPathingUtility.compCache.TryGetValue(map.uniqueID, out MapComponent_DoorPathing doorPathingcomp)) cost += doorPathingcomp.doorCostCache[index];
+                }
+
+                if (!revert && ((factorCarryingPawn && pawn.carryTracker?.CarriedThing?.def.category == ThingCategory.Pawn) || (factorBleeding && pawn.health.hediffSet.cachedBleedRate > 0.1f))) revert = true;
+                
+
+                //Revert if needed
+                if (revert && terrainCache.TryGetValue(def.shortHash, out int[] thisTerrain)) cost += thisTerrain[1] * -1;
+                if (logging && Verse.Prefs.DevMode) map.debugDrawer.FlashCell(map.cellIndices.IndexToCell(index), cost , cost.ToString());
             }
             
             return cost < 0 ? 0 : cost;
@@ -75,15 +77,12 @@ namespace CleanPathfinding
 			if (map.roofGrid.roofGrid[index] != null)
 			{
 				daylight = map.skyManager.curSkyGlowInt;
-				if (daylight == 1f)
-				{
-					return daylight;
-				}
+				if (daylight == 1f) return daylight;
 			}
 			ColorInt color = map.glowGrid.glowGrid[index];
 			if (color.a == 1) return 1f;
 
-			return System.Math.Max(daylight, System.Math.Min(0.5f, (float)(color.r + color.g + color.b) / 3f / 255f * 3.6f));
+			return System.Math.Max(daylight, System.Math.Min(0.5f, (float)(color.r + color.g + color.b) * 0.0047058823529412f)); //n / 3f / 255f * 3.6f pre-computed, since I guess the assembler doesn't optimize this
 		}
     }
 

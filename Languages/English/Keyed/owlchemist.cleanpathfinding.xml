@@ -25,7 +25,31 @@
 	<CleanPathfinding.Settings.FactorBleeding>Pawns ignore rules if bleeding</CleanPathfinding.Settings.FactorBleeding>
 	<CleanPathfinding.Settings.FactorBleeding.Desc>Pawns will ignore rules if they're bleeding more than 10%/d.</CleanPathfinding.Settings.FactorBleeding.Desc>
 	
-	<CleanPathfinding.Settings.ExitRange.Warning>Only use exit tuning if you play on an unusual map and notice pawns getting stuck trying to find the map exit.</CleanPathfinding.Settings.ExitRange.Warning>
+	<CleanPathfinding.Settings.EnableExitTuning>Enable exitfinding</CleanPathfinding.Settings.EnableExitTuning>
+	<CleanPathfinding.Settings.ExitRange.Warning>Only use exit tuning if you play on an unusual map and notice pawns getting stuck trying to find the map exit. Enabling/disabling this requires a restart.</CleanPathfinding.Settings.ExitRange.Warning>
 	<CleanPathfinding.Settings.ExitRange>Exit range (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.ExitRange>
 	<CleanPathfinding.Settings.ExitRange.Desc>Pawns look around them for an exit, each time looking +4 tiles farther and farther out. In vanilla they give up after 30 iterations. This slider increases the number of iterations to make their exit finding more aggressive.</CleanPathfinding.Settings.ExitRange.Desc>
+	
+	<CleanPathfinding.Settings.EnableWanderTuning>Enable wander tuning</CleanPathfinding.Settings.EnableWanderTuning>
+	<CleanPathfinding.Settings.EnableWanderTuning.Desc>Allows adjustments to pawns and animals that wander around aimlessly.</CleanPathfinding.Settings.EnableWanderTuning.Desc>
+	<CleanPathfinding.Settings.WanderDelay>Wander delay (Mod default: {0}, Min: {1}, Max: {2}) {3} seconds</CleanPathfinding.Settings.WanderDelay>
+	<CleanPathfinding.Settings.WanderDelay.Desc>Adds a number of extra seconds before a pawn (including penned animals and wildlife) wanders to a new nearby spot. Increase this for a minor aid to performance at the cost of a less lively world.</CleanPathfinding.Settings.WanderDelay.Desc>
+	
+	<CleanPathfinding.Settings.DoorPathing>Enable doorpathing</CleanPathfinding.Settings.DoorPathing>
+	<CleanPathfinding.Settings.DoorPathing.Desc>Disabling this will remove the pathing priority gizmos given to doors.</CleanPathfinding.Settings.DoorPathing.Desc>
+	
+	<CleanPathfinding.Settings.DoorPathingSide>Side door pathcost (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.DoorPathingSide>
+	<CleanPathfinding.Settings.DoorPathingSide.Desc>Pawns will consider this extra pathing cost when going through doors marked as side doors. For consideration, by default a normal door is considered +45 cost.</CleanPathfinding.Settings.DoorPathingSide.Desc>
+	<CleanPathfinding.Settings.DoorPathingEmergency>Emergency door pathcost (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.DoorPathingEmergency>
+	<CleanPathfinding.Settings.DoorPathingEmergency.Desc>Pawns will consider this extra pathing cost when going through doors marked as emergency doors. For consideration, by default a normal door is considered +45 cost.</CleanPathfinding.Settings.DoorPathingEmergency.Desc>
+	
+	<CleanPathfinding.Settings.OptimizeCollider>Optimizer collider check</CleanPathfinding.Settings.OptimizeCollider>
+	<CleanPathfinding.Settings.OptimizeCollider.Desc>Replace the code that checks if pawns should collide with other pawns with an optimized version. No logic change. This optimization is automatically disabled if it detects another mod needs to modify this code and it would conflict. Changing this requires a restart.</CleanPathfinding.Settings.OptimizeCollider.Desc>
+	
+	<CleanPathfinding.Icon.DoorType.Desc>Change the door type.</CleanPathfinding.Icon.DoorType.Desc>
+	<CleanPathfinding.Icon.Normal>Normal</CleanPathfinding.Icon.Normal>
+	<CleanPathfinding.Icon.Side>Side</CleanPathfinding.Icon.Side>
+	<CleanPathfinding.Icon.Emergency>Emergency</CleanPathfinding.Icon.Emergency>
+	
+	<CleanPathfinding.InvalidDoor>Door prioritization cannot be set when a room only has one door.</CleanPathfinding.InvalidDoor>
 </LanguageData>
