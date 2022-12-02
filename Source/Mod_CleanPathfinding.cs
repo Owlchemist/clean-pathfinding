@@ -1,21 +1,39 @@
 
 using Verse;
+using Verse.AI;
+using RimWorld;
 using HarmonyLib;
 using UnityEngine;
 using System.Collections.Generic;
 using static CleanPathfinding.ModSettings_CleanPathfinding;
-using static CleanPathfinding.CleanPathfindingUtility;
  
 namespace CleanPathfinding
 {
+	[StaticConstructorOnStartup]
+	public static class Setup
+	{
+        static Setup()
+        {
+            foreach (var terrainDef in DefDatabase<TerrainDef>.AllDefsListForReading)
+			{
+				if
+				(
+					terrainDef.generatedFilth != null || //Generates filth?
+					(terrainDef.tags?.Contains("CleanPath") ?? false) || //Is a road?
+					(terrainDef.generatedFilth == null && (terrainDef.defName.Contains("_Rough"))) //Is clean but avoided regardless?
+				) CleanPathfindingUtility.terrainCache.Add(terrainDef.index, new int[] { terrainDef.extraNonDraftedPerceivedPathCost, 0 } );
+			}
+            CleanPathfindingUtility.UpdatePathCosts();
+		}
+	}
     public class Mod_CleanPathfinding : Mod
 	{
+		public static Dictionary<string, bool> patchLedger = new Dictionary<string, bool>();
 
 		public Mod_CleanPathfinding(ModContentPack content) : base(content)
 		{
-			new Harmony(this.Content.PackageIdPlayerFacing).PatchAll();
 			base.GetSettings<ModSettings_CleanPathfinding>();
-			LongEventHandler.QueueLongEvent(() => Setup(), null, false, null);
+			new Harmony(this.Content.PackageIdPlayerFacing).PatchAll();
 		}
 
 		public override void DoSettingsWindowContents(Rect inRect)
@@ -72,7 +90,7 @@ namespace CleanPathfinding
 			if (wanderTuning)
 			{
 				options.Label("CleanPathfinding.Settings.WanderDelay".Translate("0", "-2", "10", (int)(wanderDelay / 60f)), -1f, "CleanPathfinding.Settings.WanderDelay.Desc".Translate());
-				wanderDelay = (int)(options.Slider((float)wanderDelay, -120f, 600f));
+				wanderDelay = (int)(options.Slider((float)wanderDelay, -118f, 600f));
 			}
 			if (Prefs.DevMode) options.CheckboxLabeled("DevMode: Enable logging", ref logging, null);
 
@@ -89,8 +107,59 @@ namespace CleanPathfinding
 		public override void WriteSettings()
 		{
 			base.WriteSettings();
-			UpdatePathCosts();
-			DoorPathingUtility.RecalculateAllDoors();
+			var harmony = new Harmony(this.Content.PackageIdPlayerFacing);
+			
+			try
+			{
+				CleanPathfindingUtility.UpdatePathCosts();
+				DoorPathingUtility.UpdateAllDoorsOnAllMaps();
+			}
+			catch (System.Exception ex)
+			{
+				Log.Message("[Clean Pathfinding] Error processing settings: " + ex);
+			}
+			
+
+			//Wander tuning patcher/unpatcher
+			//To-do: wrap all this up into a nice clean universal method
+			try
+			{
+				//Wander tuning
+				if (!wanderTuning && patchLedger[nameof(Patch_JobGiver_Wander)])
+				{
+					patchLedger[nameof(Patch_JobGiver_Wander)] = false;
+					harmony.Unpatch(AccessTools.Method(typeof(JobGiver_Wander), nameof(JobGiver_Wander.TryGiveJob) ), HarmonyPatchType.Postfix, this.Content.PackageIdPlayerFacing);
+				}
+				else if (wanderTuning && !patchLedger[nameof(Patch_JobGiver_Wander)])
+				{
+					patchLedger[nameof(Patch_JobGiver_Wander)] = true;
+					harmony.Patch(AccessTools.Method(typeof(JobGiver_Wander), nameof(JobGiver_Wander.TryGiveJob) ), 
+						postfix: new HarmonyMethod(typeof(Patch_JobGiver_Wander), nameof(Patch_JobGiver_Wander.Postfix)));
+				}
+
+				//Doorpathing
+				if (!doorPathing && patchLedger[nameof(Patch_Building_Door)])
+				{
+					patchLedger[nameof(Patch_Building_Door)] = false;
+					harmony.Unpatch(AccessTools.Method(typeof(Building_Door), nameof(Building_Door.GetGizmos) ), HarmonyPatchType.Postfix, this.Content.PackageIdPlayerFacing);
+					harmony.Unpatch(AccessTools.Method(typeof(Building_Door), nameof(Building_Door.DeSpawn) ), HarmonyPatchType.Prefix, this.Content.PackageIdPlayerFacing);
+					harmony.Unpatch(AccessTools.Method(typeof(Room), nameof(Room.Notify_RoomShapeChanged) ), HarmonyPatchType.Postfix, this.Content.PackageIdPlayerFacing);
+				}
+				else if (doorPathing && !patchLedger[nameof(Patch_Building_Door)])
+				{
+					patchLedger[nameof(Patch_Building_Door)] = true;
+					harmony.Patch(AccessTools.Method(typeof(Building_Door), nameof(Building_Door.GetGizmos) ), 
+						postfix: new HarmonyMethod(typeof(Patch_Building_Door), nameof(Patch_Building_Door.Postfix)));
+					harmony.Patch(AccessTools.Method(typeof(Building_Door), nameof(Building_Door.DeSpawn) ), 
+						postfix: new HarmonyMethod(typeof(Patch_Building_DoorDeSpawn), nameof(Patch_Building_DoorDeSpawn.Prefix)));
+					harmony.Patch(AccessTools.Method(typeof(Room), nameof(Room.Notify_RoomShapeChanged) ), 
+						postfix: new HarmonyMethod(typeof(Patch_Notify_RoomShapeChanged), nameof(Patch_Notify_RoomShapeChanged.Postfix)));
+				}
+			}
+			catch (System.Exception ex)
+			{                
+				Log.Error("[Clean Pathfinding] Error processing patching or unpatching, skipping...\n" + ex);
+			}
 		}
 	}
 
@@ -98,21 +167,21 @@ namespace CleanPathfinding
 	{
 		public override void ExposeData()
 		{
-			Scribe_Values.Look<int>(ref bias, "bias", 8, false);
-			Scribe_Values.Look<int>(ref naturalBias, "naturalBias", 4, false);
-			Scribe_Values.Look<int>(ref roadBias, "roadBias", 4, false);
-			Scribe_Values.Look<int>(ref extraRange, "extraRange", 0, false);
-			Scribe_Values.Look<bool>(ref factorLight, "factorLight", true, false);
-			Scribe_Values.Look<bool>(ref factorCarryingPawn, "factorCarryingPawn", true, false);
-			Scribe_Values.Look<bool>(ref factorBleeding, "factorBleeding", true, false);
-			Scribe_Values.Look<int>(ref exitRange, "exitRange", 0, false);
-			Scribe_Values.Look<bool>(ref doorPathing, "doorPathing", true, false);
-			Scribe_Values.Look<int>(ref doorPathingSide, "doorPathingSide", 400, false);
-			Scribe_Values.Look<int>(ref doorPathingEmergency, "doorPathingEmergency", 1500, false);
-			Scribe_Values.Look<int>(ref wanderDelay, "wanderDelay", 0, false);
-			Scribe_Values.Look<bool>(ref optimizeCollider, "optimizeCollider", true, false);
-			Scribe_Values.Look<bool>(ref exitTuning, "exitTuning", false, false);
-			Scribe_Values.Look<bool>(ref wanderTuning, "wanderTuning", false, false);
+			Scribe_Values.Look<int>(ref bias, "bias", 8);
+			Scribe_Values.Look<int>(ref naturalBias, "naturalBias", 4);
+			Scribe_Values.Look<int>(ref roadBias, "roadBias", 4);
+			Scribe_Values.Look<int>(ref extraRange, "extraRange");
+			Scribe_Values.Look<bool>(ref factorLight, "factorLight", true);
+			Scribe_Values.Look<bool>(ref factorCarryingPawn, "factorCarryingPawn", true);
+			Scribe_Values.Look<bool>(ref factorBleeding, "factorBleeding", true);
+			Scribe_Values.Look<int>(ref exitRange, "exitRange");
+			Scribe_Values.Look<bool>(ref doorPathing, "doorPathing", true);
+			Scribe_Values.Look<int>(ref doorPathingSide, "doorPathingSide", 400);
+			Scribe_Values.Look<int>(ref doorPathingEmergency, "doorPathingEmergency", 1500);
+			Scribe_Values.Look<int>(ref wanderDelay, "wanderDelay");
+			Scribe_Values.Look<bool>(ref optimizeCollider, "optimizeCollider", true);
+			Scribe_Values.Look<bool>(ref exitTuning, "exitTuning");
+			Scribe_Values.Look<bool>(ref wanderTuning, "wanderTuning");
 			base.ExposeData();
 		}
 

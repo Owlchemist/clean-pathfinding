@@ -4,7 +4,6 @@ using System.Reflection;
 using System.Collections.Generic;
 using HarmonyLib;
 using Verse;
-using UnityEngine;
 
 namespace CleanPathfinding
 {
@@ -35,7 +34,8 @@ namespace CleanPathfinding
 
 		static IEnumerable<Gizmo> Postfix(IEnumerable<Gizmo> values, Building __instance)
         {
-			return DoorPathingUtility.GetGizmos(values, __instance);
+            if (!ModSettings_CleanPathfinding.doorPathing) foreach (var value in values) yield return value;
+            else foreach (var item in DoorPathingUtility.GetGizmos(values, __instance)) yield return item;
 		}
     }
 }

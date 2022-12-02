@@ -5,13 +5,13 @@
 	<CleanPathfinding.Settings.Header.Misc>Misc:</CleanPathfinding.Settings.Header.Misc>
 	
 	<CleanPathfinding.Settings.Bias>Dirty terrain avoidance (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.Bias>
-	<CleanPathfinding.Settings.Bias.Desc>Extra percieved pathcost to apply to filth-generating terrain tiles.</CleanPathfinding.Settings.Bias.Desc>
+	<CleanPathfinding.Settings.Bias.Desc>Extra perceived pathcost to apply to filth-generating terrain tiles.</CleanPathfinding.Settings.Bias.Desc>
 	
 	<CleanPathfinding.Settings.NaturalBias>Clean stone terrain avoidance (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.NaturalBias>
 	<CleanPathfinding.Settings.NaturalBias.Desc>Since stone terrain does not generate filth, the above setting may cause pawns be overly attracted to walking upon it, depending on the map layout. You can tinker with this setting if you're trying to avoid this behavior.</CleanPathfinding.Settings.NaturalBias.Desc>
 	
 	<CleanPathfinding.Settings.RoadBias>Road attraction (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.RoadBias>
-	<CleanPathfinding.Settings.RoadBias.Desc>A reduction of percieved pathcost for any tiles with the "Road" tag.</CleanPathfinding.Settings.RoadBias.Desc>
+	<CleanPathfinding.Settings.RoadBias.Desc>A reduction of perceived pathcost for any tiles with the "Road" tag.</CleanPathfinding.Settings.RoadBias.Desc>
 	
 	<CleanPathfinding.Settings.ExtraRange>Extra pathfinding range (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.ExtraRange>
 	<CleanPathfinding.Settings.ExtraRange.Desc>An additional range modifier on calculating paths, potentially at a performance expense.</CleanPathfinding.Settings.ExtraRange.Desc>
@@ -19,7 +19,7 @@
 	<CleanPathfinding.Settings.FactorLight>Pathfinding should factor light</CleanPathfinding.Settings.FactorLight>
 	<CleanPathfinding.Settings.FactorLight.Desc>Pawns will factor and bias lit paths. This extra calculation has a small performance impact.</CleanPathfinding.Settings.FactorLight.Desc>
 	
-	<CleanPathfinding.Settings.FactorCarryingPawn>Pawn ignore rules if carrying another pawn</CleanPathfinding.Settings.FactorCarryingPawn>
+	<CleanPathfinding.Settings.FactorCarryingPawn>Pawns ignore rules if carrying another pawn</CleanPathfinding.Settings.FactorCarryingPawn>
 	<CleanPathfinding.Settings.FactorCarryingPawn.Desc>Pawns will ignore rules if they're carrying another pawn.</CleanPathfinding.Settings.FactorCarryingPawn.Desc>
 	
 	<CleanPathfinding.Settings.FactorBleeding>Pawns ignore rules if bleeding</CleanPathfinding.Settings.FactorBleeding>
@@ -43,7 +43,7 @@
 	<CleanPathfinding.Settings.DoorPathingEmergency>Emergency door pathcost (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.DoorPathingEmergency>
 	<CleanPathfinding.Settings.DoorPathingEmergency.Desc>Pawns will consider this extra pathing cost when going through doors marked as emergency doors. For consideration, by default a normal door is considered +45 cost.</CleanPathfinding.Settings.DoorPathingEmergency.Desc>
 	
-	<CleanPathfinding.Settings.OptimizeCollider>Optimizer collider check</CleanPathfinding.Settings.OptimizeCollider>
+	<CleanPathfinding.Settings.OptimizeCollider>Optimize collider check</CleanPathfinding.Settings.OptimizeCollider>
 	<CleanPathfinding.Settings.OptimizeCollider.Desc>Replace the code that checks if pawns should collide with other pawns with an optimized version. No logic change. This optimization is automatically disabled if it detects another mod needs to modify this code and it would conflict. Changing this requires a restart.</CleanPathfinding.Settings.OptimizeCollider.Desc>
 	
 	<CleanPathfinding.Icon.DoorType.Desc>Change the door type.</CleanPathfinding.Icon.DoorType.Desc>
@@ -52,4 +52,7 @@
 	<CleanPathfinding.Icon.Emergency>Emergency</CleanPathfinding.Icon.Emergency>
 	
 	<CleanPathfinding.InvalidDoor>Door prioritization cannot be set when a room only has one door.</CleanPathfinding.InvalidDoor>
+	
+	<CleanPathfinding.ReloadHeader>Reload required</CleanPathfinding.ReloadHeader>
+	<CleanPathfinding.ReloadRequired>Reload your save to enable door pathing features. You do not need to restart the game.</CleanPathfinding.ReloadRequired>
 </LanguageData>
