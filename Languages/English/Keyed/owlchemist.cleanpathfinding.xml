@@ -50,9 +50,13 @@
 	<CleanPathfinding.Icon.Normal>Normal</CleanPathfinding.Icon.Normal>
 	<CleanPathfinding.Icon.Side>Side</CleanPathfinding.Icon.Side>
 	<CleanPathfinding.Icon.Emergency>Emergency</CleanPathfinding.Icon.Emergency>
+	<CleanPathfinding.Icon.Exclusive>Exclusive</CleanPathfinding.Icon.Exclusive>
 	
 	<CleanPathfinding.InvalidDoor>Door prioritization cannot be set when a room only has one door.</CleanPathfinding.InvalidDoor>
 	
 	<CleanPathfinding.ReloadHeader>Reload required</CleanPathfinding.ReloadHeader>
 	<CleanPathfinding.ReloadRequired>Reload your save to enable door pathing features. You do not need to restart the game.</CleanPathfinding.ReloadRequired>
+	
+	<CleanPathfinding.NewAvoidArea>[Clean Pathfinding] Avoid area registered.</CleanPathfinding.NewAvoidArea>
+	<CleanPathfinding.DeletedAvoidArea>[Clean Pathfinding] Avoid area removed.</CleanPathfinding.DeletedAvoidArea>
 </LanguageData>

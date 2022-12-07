@@ -3,7 +3,13 @@
 	<Operation Class="PatchOperationSequence">
 		<operations>
 			<li Class="PatchOperationAdd">
-				<xpath>Defs/TerrainDef[tags]/tags[li/text()="Road"]</xpath>
+				<xpath>Defs/TerrainDef[tags]/tags[li/text()="Road" or li/text()="FineFloor"]</xpath>
+				<value>
+					<li>CleanPath</li>
+				</value>
+			</li>
+			<li Class="PatchOperationAdd">
+				<xpath>Defs/TerrainTemplateDef[tags]/tags[li/text()="FineFloor"]</xpath>
 				<value>
 					<li>CleanPath</li>
 				</value>

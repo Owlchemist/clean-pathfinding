@@ -22,9 +22,25 @@ namespace CleanPathfinding
         {
             bool ran = false;
             int offset = -1;
+			bool searchForObjects = false;
+			int objectsFound = 0;
+			object[] objects = new object[3];
             foreach (var code in instructions)
             {
                 yield return code;
+				if (!searchForObjects && code.opcode == OpCodes.Ldfld && code.OperandIs(AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraDraftedPerceivedPathCost))))
+                {
+                    searchForObjects = true;
+                    continue;
+                }
+
+				//Record which local variables extraNonDraftedPerceivedPathCost is using, instead of blindly pulling from the local array ourselves which may jumble
+				if (searchForObjects && objectsFound < 3 && code.opcode == OpCodes.Ldloc_S)
+                {
+					objects[objectsFound++] = code.operand;
+					//As of 12/5, object 0 should be 48, object 1 should be 12, and object 2 should be 45
+				}
+
                 if (offset == -1 && code.opcode == OpCodes.Ldfld && code.OperandIs(AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraNonDraftedPerceivedPathCost))))
                 {
                     offset = 0;
@@ -32,16 +48,17 @@ namespace CleanPathfinding
                 }
                 if (offset > -1 && ++offset == 2)
                 {
+					//code.operand
                     yield return new CodeInstruction(OpCodes.Ldloc_0);
-                    yield return new CodeInstruction(OpCodes.Ldloc_S, 12); //topGrid
-                    yield return new CodeInstruction(OpCodes.Ldloc_S, 45); //TerrainDef within the grid
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, objects[1]); //topGrid
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, objects[2]); //TerrainDef within the grid
                     yield return new CodeInstruction(OpCodes.Ldelem_Ref);
-                    yield return new CodeInstruction(OpCodes.Ldloc_S, 48); //Pathcost total
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, objects[0]); //Pathcost total
                     yield return new CodeInstruction(OpCodes.Ldarg_0);
                     yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(PathFinder), nameof(PathFinder.map)));
-                    yield return new CodeInstruction(OpCodes.Ldloc_S, 45); //cell location
+                    yield return new CodeInstruction(OpCodes.Ldloc_S, objects[2]); //cell location
                     yield return new CodeInstruction(OpCodes.Call, typeof(CleanPathfindingUtility).GetMethod(nameof(CleanPathfindingUtility.AdjustCosts)));
-                    yield return new CodeInstruction(OpCodes.Stloc_S, 48);
+                    yield return new CodeInstruction(OpCodes.Stloc_S, objects[0]);
 
                     ran = true;
                 }
@@ -56,7 +73,7 @@ namespace CleanPathfinding
     {
         static bool Prefix(ref float __result, Pawn pawn, IntVec3 start, LocalTargetInfo dest)
         {
-            if (extraRange == 0 || pawn?.def.race.intelligence < Intelligence.Humanlike) return true;
+            if (extraRange == 0 || pawn == null || pawn.def.race.intelligence < Intelligence.Humanlike) return true;
             
             float lengthHorizontal = (start - dest.Cell).LengthHorizontal;
             __result = (float)System.Math.Round(Custom_DistanceCurve.Evaluate(lengthHorizontal));
@@ -69,6 +86,8 @@ namespace CleanPathfinding
 		public static Dictionary<ushort, int[]> terrainCache = new Dictionary<ushort, int[]>();
 		public static SimpleCurve Custom_DistanceCurve;
 		static List<string> report = new List<string>();
+		public static int cachedMapID = -1;
+		public static MapComponent_DoorPathing cachedComp;
 
 		public static void UpdatePathCosts()
 		{
@@ -144,26 +163,53 @@ namespace CleanPathfinding
 			}
 		}
 
+		static int loggedOnTick = 0;
+		static int calls = 0;
+
 		static public int AdjustCosts(Pawn pawn, TerrainDef def, int cost, Map map, int index)
         {
             //Revert path costs based on rules, also factor light
             Faction faction = pawn?.factionInt;
-            if (faction != null && pawn.def.race.intelligence >= Intelligence.Humanlike)
+            if (faction != null && pawn.def.race.intelligence == Intelligence.Humanlike)
             {
                 bool revert = false;
                 if (!faction.def.isPlayer && faction.HostileTo(Current.gameInt.worldInt.factionManager.ofPlayer)) revert = true;
-                //Light factor
+                //Light factor and doorpathing
                 else
                 {
                     if (factorLight && GameGlowAtFast(map, index) < 0.3f) cost += 2;
-                    if (doorPathing && DoorPathingUtility.compCache.TryGetValue(map.uniqueID, out MapComponent_DoorPathing doorPathingcomp)) cost += doorPathingcomp.doorCostCache[index];
+                    if (doorPathing)
+					{
+						int doorCost = 0;
+						if (cachedMapID == map.uniqueID) doorCost = cachedComp.doorCostGrid[index];
+						else if (DoorPathingUtility.compCache.TryGetValue(map.uniqueID, out cachedComp))
+						{
+							cachedMapID = map.uniqueID;
+							doorCost = cachedComp.doorCostGrid[index];
+						}
+						if (doorCost == -45) return -45;
+						else cost += doorCost;
+					}
                 }
 
                 if (!revert && ((factorCarryingPawn && pawn.carryTracker?.CarriedThing?.def.category == ThingCategory.Pawn) || (factorBleeding && pawn.health.hediffSet.cachedBleedRate > 0.1f))) revert = true;
                 
                 //Revert if needed
                 if (revert && terrainCache.TryGetValue(def.index, out int[] thisTerrain)) cost += thisTerrain[1] * -1;
-                if (logging && Verse.Prefs.DevMode) map.debugDrawer.FlashCell(map.cellIndices.IndexToCell(index), cost , cost.ToString());
+				
+				//Logging and debugging stuff
+				if (logging && Verse.Prefs.DevMode)
+				{
+					++calls;
+					if (Find.TickManager.ticksGameInt != loggedOnTick)
+					{
+						loggedOnTick = Find.TickManager.ticksGameInt;
+						if (calls != 0) Log.Message("[Clean Pathfinding] Calls last pathfinding: " + calls.ToString());
+						calls = 0;
+					}
+					if (cost < 0) cost = 0;
+					map.debugDrawer.FlashCell(map.cellIndices.IndexToCell(index), cost , cost.ToString());
+				}
 
                 return cost < 0 ? 0 : cost;
             }

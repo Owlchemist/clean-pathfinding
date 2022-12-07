@@ -55,7 +55,7 @@ namespace CleanPathfinding
 			options.Label("CleanPathfinding.Settings.NaturalBias".Translate("4", "0", "12") + naturalBias, -1f, "CleanPathfinding.Settings.NaturalBias.Desc".Translate());
 			naturalBias = (int)options.Slider((float)naturalBias, 0f, 12f);
 
-			options.Label("CleanPathfinding.Settings.RoadBias".Translate("8", "0", "8") + roadBias, -1f, "CleanPathfinding.Settings.RoadBias.Desc".Translate());
+			options.Label("CleanPathfinding.Settings.RoadBias".Translate("6", "0", "8") + roadBias, -1f, "CleanPathfinding.Settings.RoadBias.Desc".Translate());
 			roadBias = (int)options.Slider((float)roadBias, 0f, 8f);
 
 			options.Label("CleanPathfinding.Settings.ExtraRange".Translate("0", "0", "230") + extraRange, -1f, "CleanPathfinding.Settings.ExtraRange.Desc".Translate());
@@ -72,13 +72,13 @@ namespace CleanPathfinding
 			options.Label("CleanPathfinding.Settings.Header.Misc".Translate());
 			options.GapLine(); //======================================
 			options.CheckboxLabeled("CleanPathfinding.Settings.OptimizeCollider".Translate(), ref optimizeCollider, "CleanPathfinding.Settings.OptimizeCollider.Desc".Translate());
-			options.CheckboxLabeled("CleanPathfinding.Settings.DoorPathing".Translate(), ref doorPathing, "CleanPathfinding.Settings.DoorPathing.Desc".Translate());
+			if (Current.ProgramState != ProgramState.Playing) options.CheckboxLabeled("CleanPathfinding.Settings.DoorPathing".Translate(), ref doorPathing, "CleanPathfinding.Settings.DoorPathing.Desc".Translate());
 			if (doorPathing)
 			{
-				options.Label("CleanPathfinding.Settings.DoorPathingSide".Translate("400", "100", "1000") + doorPathingSide, -1f, "CleanPathfinding.Settings.DoorPathingSide.Desc".Translate());
-				doorPathingSide = (int)options.Slider((float)doorPathingSide, 100f, 1000f);
-				options.Label("CleanPathfinding.Settings.DoorPathingEmergency".Translate("1500", "1000", "3000") + doorPathingEmergency, -1f, "CleanPathfinding.Settings.DoorPathingEmergency.Desc".Translate());
-				doorPathingEmergency = (int)options.Slider((float)doorPathingEmergency, 100f, 3000f);
+				options.Label("CleanPathfinding.Settings.DoorPathingSide".Translate("250", "50", "500") + doorPathingSide, -1f, "CleanPathfinding.Settings.DoorPathingSide.Desc".Translate());
+				doorPathingSide = (int)options.Slider((float)doorPathingSide, 50f, 500f);
+				options.Label("CleanPathfinding.Settings.DoorPathingEmergency".Translate("500", "500", "1000") + doorPathingEmergency, -1f, "CleanPathfinding.Settings.DoorPathingEmergency.Desc".Translate());
+				doorPathingEmergency = (int)options.Slider((float)doorPathingEmergency, 500f, 1000f);
 			}
 			options.CheckboxLabeled("CleanPathfinding.Settings.EnableExitTuning".Translate(), ref exitTuning, "CleanPathfinding.Settings.ExitRange.Warning".Translate());
 			if (exitTuning)
