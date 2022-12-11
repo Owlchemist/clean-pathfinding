@@ -138,18 +138,18 @@ namespace CleanPathfinding
 				}
 
 				//Doorpathing
-				if (!doorPathing && patchLedger[nameof(Patch_Building_Door)])
+				if (!doorPathing && patchLedger[nameof(Patch_Building_Door_GetGizmos)])
 				{
-					patchLedger[nameof(Patch_Building_Door)] = false;
+					patchLedger[nameof(Patch_Building_Door_GetGizmos)] = false;
 					harmony.Unpatch(AccessTools.Method(typeof(Building_Door), nameof(Building_Door.GetGizmos) ), HarmonyPatchType.Postfix, this.Content.PackageIdPlayerFacing);
 					harmony.Unpatch(AccessTools.Method(typeof(Building_Door), nameof(Building_Door.DeSpawn) ), HarmonyPatchType.Prefix, this.Content.PackageIdPlayerFacing);
 					harmony.Unpatch(AccessTools.Method(typeof(Room), nameof(Room.Notify_RoomShapeChanged) ), HarmonyPatchType.Postfix, this.Content.PackageIdPlayerFacing);
 				}
-				else if (doorPathing && !patchLedger[nameof(Patch_Building_Door)])
+				else if (doorPathing && !patchLedger[nameof(Patch_Building_Door_GetGizmos)])
 				{
-					patchLedger[nameof(Patch_Building_Door)] = true;
+					patchLedger[nameof(Patch_Building_Door_GetGizmos)] = true;
 					harmony.Patch(AccessTools.Method(typeof(Building_Door), nameof(Building_Door.GetGizmos) ), 
-						postfix: new HarmonyMethod(typeof(Patch_Building_Door), nameof(Patch_Building_Door.Postfix)));
+						postfix: new HarmonyMethod(typeof(Patch_Building_Door_GetGizmos), nameof(Patch_Building_Door_GetGizmos.Postfix)));
 					harmony.Patch(AccessTools.Method(typeof(Building_Door), nameof(Building_Door.DeSpawn) ), 
 						postfix: new HarmonyMethod(typeof(Patch_Building_DoorDeSpawn), nameof(Patch_Building_DoorDeSpawn.Prefix)));
 					harmony.Patch(AccessTools.Method(typeof(Room), nameof(Room.Notify_RoomShapeChanged) ), 

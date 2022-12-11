@@ -48,7 +48,6 @@ namespace CleanPathfinding
                 }
                 if (offset > -1 && ++offset == 2)
                 {
-					//code.operand
                     yield return new CodeInstruction(OpCodes.Ldloc_0);
                     yield return new CodeInstruction(OpCodes.Ldloc_S, objects[1]); //topGrid
                     yield return new CodeInstruction(OpCodes.Ldloc_S, objects[2]); //TerrainDef within the grid
@@ -187,8 +186,7 @@ namespace CleanPathfinding
 							cachedMapID = map.uniqueID;
 							doorCost = cachedComp.doorCostGrid[index];
 						}
-						if (doorCost == -45) return -45;
-						else cost += doorCost;
+						return (doorCost < 0) ? cost : cost += doorCost;
 					}
                 }
 

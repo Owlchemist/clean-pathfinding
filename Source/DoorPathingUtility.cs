@@ -1,10 +1,13 @@
 using HarmonyLib;
 using Verse;
+using Verse.AI;
 using System;
 using System.Collections.Generic;
 using RimWorld;
 using RimWorld.Planet;
 using Verse.Sound;
+using System.Reflection.Emit;
+using UnityEngine;
 using static CleanPathfinding.DoorPathingUtility;
 using static CleanPathfinding.ModSettings_CleanPathfinding;
  
@@ -12,11 +15,11 @@ namespace CleanPathfinding
 {
 	//Add gizmos to the doors
     [HarmonyPatch(typeof(Building_Door), nameof(Building_Door.GetGizmos))]
-    static class Patch_Building_Door
+    static class Patch_Building_Door_GetGizmos
     {
 		static bool Prepare()
 		{
-			if (!Mod_CleanPathfinding.patchLedger.ContainsKey(nameof(Patch_Building_Door))) Mod_CleanPathfinding.patchLedger.Add(nameof(Patch_Building_Door), doorPathing);
+			if (!Mod_CleanPathfinding.patchLedger.ContainsKey(nameof(Patch_Building_Door_GetGizmos))) Mod_CleanPathfinding.patchLedger.Add(nameof(Patch_Building_Door_GetGizmos), doorPathing);
             return doorPathing;
 		}
 		public static IEnumerable<Gizmo> Postfix(IEnumerable<Gizmo> values, Building_Door __instance)
@@ -109,10 +112,60 @@ namespace CleanPathfinding
 		}
 	}
 
+	[HarmonyPatch(typeof(PathFinder), nameof(PathFinder.GetBuildingCost))]
+    public static class Patch_GetBuildingCost
+    {
+		static bool Prepare()
+		{
+			return doorPathing;
+		}
+		static int Postfix(int __result, Building b, Pawn pawn)
+		{ 
+			return (
+				((!usingDoorsExpanded && b is Building_Door) || usingDoorsExpanded) && //Is a door?
+				compCache.TryGetValue(pawn.Map.uniqueID, out MapComponent_DoorPathing mapComp) && //Map component found?
+				mapComp.doorRegistry.TryGetValue(b.thingIDNumber, out DoorType doorType) && //Door registered?
+				doorType == DoorType.Exclusive //Door is exclusive?
+			) ? 0 : __result; //Cancel the cost if exclusive, otherwise pass thru
+		}
+	}
+
+	[HarmonyPatch(typeof(SelectionDrawer), nameof(SelectionDrawer.DrawSelectionBracketFor))]
+    static class Patch_DrawSelectionBracketFor
+    {
+		static bool Prepare()
+		{
+			return doorPathing;
+		}
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+			int offset = 0;
+			bool ran = false;
+			foreach (var code in instructions)
+			{
+				yield return code;
+				if (offset != 4 && code.opcode == OpCodes.Stloc_3)
+                {
+                    ++offset;
+                    continue;
+                }
+				if (!ran && offset == 3)
+				{
+					yield return new CodeInstruction(OpCodes.Ldloc_1);
+					yield return new CodeInstruction(OpCodes.Call, typeof(DoorPathingUtility).GetMethod(nameof(DoorPathingUtility.DrawDoorField)));
+
+					ran = true;
+				}
+			}
+			if (!ran) Log.Warning("[Clean Pathfinding] Transpiler could not find target for door edge drawer. There may be a mod conflict, or RimWorld updated?");
+		}
+	}
+	
 	static public class DoorPathingUtility
 	{
 		public enum DoorType { Normal = 1, Side, Emergency, Exclusive}
 		public static Dictionary<int, MapComponent_DoorPathing> compCache = new Dictionary<int, MapComponent_DoorPathing>();
+		public static bool usingDoorsExpanded;
 
 		public static IEnumerable<Gizmo> GetGizmos(IEnumerable<Gizmo> values, Building thing)
 		{
@@ -125,7 +178,7 @@ namespace CleanPathfinding
 					if (!doorPathingComp.doorRegistry.TryGetValue(thing.thingIDNumber, out DoorType doorType))
 					{
 						doorPathingComp.doorRegistry.Add(thing.thingIDNumber, DoorType.Normal);
-						doorPathingComp.doorCostGrid[thing.Map.cellIndices.CellToIndex(thing.Position)] = GetDoorCost(DoorType.Normal);
+						doorPathingComp.doorCostGrid[thing.Map.cellIndices.CellToIndex(thing.Position)] = GetDoorCost(DoorType.Normal, thing);
 						doorType = DoorType.Normal;
 					}
 					
@@ -141,13 +194,13 @@ namespace CleanPathfinding
 		}
 
 		//Converts the doorType enum to the mod setting config
-		public static int GetDoorCost(DoorType doorType)
+		public static int GetDoorCost(DoorType doorType, Building door)
 		{
 			switch (doorType)
 			{
 				case DoorType.Normal: return 0;
 				case DoorType.Side: return doorPathingSide;
-				case DoorType.Exclusive: return -45;
+				case DoorType.Exclusive: return -1;
 				default: return doorPathingEmergency;
 			}
 		}
@@ -166,6 +219,33 @@ namespace CleanPathfinding
 						if (!Find.WindowStack.IsOpen(reloadGameMessage)) Find.WindowStack.Add(reloadGameMessage);
 					}
 				}
+			}
+		}
+
+		public static void DrawDoorField(Thing thing)
+		{
+			if ( ((!usingDoorsExpanded && thing is Building_Door) || usingDoorsExpanded) && //Filter on doors normally, or check all buildings if using Doors Expanded
+			compCache.TryGetValue(thing.Map.uniqueID, out MapComponent_DoorPathing mapComp) && 
+			mapComp.doorRegistry.TryGetValue(thing.thingIDNumber, out DoorType doorType))
+			{
+				Color color;
+				switch (doorType)
+				{
+					case DoorType.Exclusive: {
+						color = ResourceBank.blue; break;
+					}
+					case DoorType.Side: {
+						color = ResourceBank.yellow; break;
+					}
+					case DoorType.Emergency: {
+						color = ResourceBank.red; break;
+					}
+					default: {
+						color = ResourceBank.white; break;
+					}
+				}
+				
+				GenDraw.DrawFieldEdges(new List<IntVec3>(thing.OccupiedRect()), color);
 			}
 		}
 	}
@@ -244,9 +324,10 @@ namespace CleanPathfinding
 			//Turning off avoid?
 			else
 			{
-				if (doorRegistry.TryGetValue(c.GetEdifice(map)?.thingIDNumber ?? -1, out DoorType doorValue))
+				var edifice = c.GetEdifice(map);
+				if (edifice != null && doorRegistry.TryGetValue(edifice.thingIDNumber, out DoorType doorValue))
 				{
-					doorCostGrid[index] = DoorPathingUtility.GetDoorCost(doorValue);
+					doorCostGrid[index] = DoorPathingUtility.GetDoorCost(doorValue, edifice);
 				}
 				else doorCostGrid[index] = 0;
 			}
@@ -261,7 +342,7 @@ namespace CleanPathfinding
 				var length = list.Count;
 				for (int i = 0; i < length; i++)
 				{
-					var building = list[i];
+					Building building = list[i];
 					if (doorRegistry.ContainsKey(building.thingIDNumber)) WriteToDoorGrid(building, doorRegistry[building.thingIDNumber]);
 				}
 			}
@@ -288,11 +369,11 @@ namespace CleanPathfinding
 		}
 
 		//Going through all cells a door occupies and writing the cost
-		void WriteToDoorGrid(Thing thing, DoorType doorType)
+		void WriteToDoorGrid(Building thing, DoorType doorType)
 		{
 			foreach (var c in thing.OccupiedRect().Cells)
 			{
-				if (c.InBounds(map)) doorCostGrid[map.cellIndices.CellToIndex(c)] = GetDoorCost(doorType);
+				if (c.InBounds(map)) doorCostGrid[map.cellIndices.CellToIndex(c)] = GetDoorCost(doorType, thing);
 			}
 		}
 
@@ -347,7 +428,7 @@ namespace CleanPathfinding
 				if (logging && Prefs.DevMode) Log.Message("[Clean Pathfinding] Doors in new room layout: " + doorsInRoom.Count.ToString());
 				if (doorsInRoom.Count > 0)
 				{
-					foreach (var item in doorsInRoom)
+					foreach (Building item in doorsInRoom)
 					{
 						//Register door if missing
 						if (!doorRegistry.ContainsKey(item.thingIDNumber)) doorRegistry.Add(item.thingIDNumber, DoorType.Normal);

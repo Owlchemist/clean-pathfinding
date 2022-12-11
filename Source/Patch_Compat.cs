@@ -24,6 +24,7 @@ namespace CleanPathfinding
                 return false;
             }
 
+            DoorPathingUtility.usingDoorsExpanded = true;
             return true;
         }
 
