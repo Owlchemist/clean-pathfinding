@@ -14,15 +14,23 @@ namespace CleanPathfinding
 	{
         static Setup()
         {
-            foreach (var terrainDef in DefDatabase<TerrainDef>.AllDefsListForReading)
+			var list = DefDatabase<TerrainDef>.AllDefsListForReading;
+			var length = list.Count;
+			for (int i = 0; i < length; i++)
 			{
+				TerrainDef terrainDef = list[i];
 				if
 				(
 					terrainDef.generatedFilth != null || //Generates filth?
 					(terrainDef.tags?.Contains("CleanPath") ?? false) || //Is a road?
 					(terrainDef.generatedFilth == null && (terrainDef.defName.Contains("_Rough"))) //Is clean but avoided regardless?
-				) CleanPathfindingUtility.terrainCache.Add(terrainDef.index, new int[] { terrainDef.extraNonDraftedPerceivedPathCost, 0 } );
+				)
+				{
+					CleanPathfindingUtility.terrainCacheOriginalValues.Add(terrainDef.index, terrainDef.extraNonDraftedPerceivedPathCost);
+					CleanPathfindingUtility.terrainCache.Add(terrainDef.index, terrainDef.extraNonDraftedPerceivedPathCost);
+				} 
 			}
+            
             CleanPathfindingUtility.UpdatePathCosts();
 		}
 	}
@@ -49,22 +57,36 @@ namespace CleanPathfinding
 			options.Gap();
 			options.Label("CleanPathfinding.Settings.Header.Tuning".Translate());
 			options.GapLine(); //======================================
-			options.Label("CleanPathfinding.Settings.Bias".Translate("8", "0", "12") + bias, -1f, "CleanPathfinding.Settings.Bias.Desc".Translate());
+			options.Label("CleanPathfinding.Settings.Bias".Translate("5", "0", "12") + bias, -1f, "CleanPathfinding.Settings.Bias.Desc".Translate());
 			bias = (int)options.Slider((float)bias, 0f, 12f);
 
-			options.Label("CleanPathfinding.Settings.NaturalBias".Translate("4", "0", "12") + naturalBias, -1f, "CleanPathfinding.Settings.NaturalBias.Desc".Translate());
+			options.Label("CleanPathfinding.Settings.NaturalBias".Translate("0", "0", "12") + naturalBias, -1f, "CleanPathfinding.Settings.NaturalBias.Desc".Translate());
 			naturalBias = (int)options.Slider((float)naturalBias, 0f, 12f);
 
-			options.Label("CleanPathfinding.Settings.RoadBias".Translate("6", "0", "8") + roadBias, -1f, "CleanPathfinding.Settings.RoadBias.Desc".Translate());
-			roadBias = (int)options.Slider((float)roadBias, 0f, 8f);
+			options.Label("CleanPathfinding.Settings.RoadBias".Translate("9", "0", "12") + roadBias, -1f, "CleanPathfinding.Settings.RoadBias.Desc".Translate());
+			roadBias = (int)options.Slider((float)roadBias, 0f, 12f);
 
-			options.Label("CleanPathfinding.Settings.ExtraRange".Translate("0", "0", "230") + extraRange, -1f, "CleanPathfinding.Settings.ExtraRange.Desc".Translate());
-			extraRange = (int)options.Slider((float)extraRange, 0f, 230f);
+			options.Label("CleanPathfinding.Settings.HeuristicAdjuster".Translate("90", "0", "200", heuristicAdjuster == 200 ? "MAX" : heuristicAdjuster), -1f, "CleanPathfinding.Settings.HeuristicAdjuster.Desc".Translate());
+			heuristicAdjuster = (int)options.Slider((float)heuristicAdjuster, 0f, 200f);
+			
+			options.CheckboxLabeled("CleanPathfinding.Settings.EnableRegionPathing".Translate(), ref regionPathing, "CleanPathfinding.Settings.EnableRegionPathing.Desc".Translate() + "CleanPathfinding.Settings.RegionModeThreshold.Desc".Translate());
+			if (regionPathing)
+			{
+				if (regionModeThreshold == 100000) regionModeThreshold = 1000; //Reset to default if just enabled
+				options.Label("CleanPathfinding.Settings.RegionModeThreshold".Translate("1000", "500", "2000") + regionModeThreshold, -1f, "CleanPathfinding.Settings.RegionModeThreshold.Desc".Translate().CapitalizeFirst());
+				regionModeThreshold = (int)options.Slider((float)regionModeThreshold, 500f, 2000f);
+			}
+			else regionModeThreshold = 100000;
 
 			options.Gap();
 			options.Label("CleanPathfinding.Settings.Header.Rules".Translate());
 			options.GapLine(); //======================================
 			options.CheckboxLabeled("CleanPathfinding.Settings.FactorLight".Translate(), ref factorLight, "CleanPathfinding.Settings.FactorLight.Desc".Translate());
+			if (factorLight)
+			{
+				options.Label("CleanPathfinding.Settings.DarknessPenalty".Translate("2", "1", "6") + darknessPenalty, -1f, "CleanPathfinding.Settings.DarknessPenalty.Desc".Translate());
+				darknessPenalty = (int)options.Slider((float)darknessPenalty, 1, 6);
+			}
 			options.CheckboxLabeled("CleanPathfinding.Settings.FactorCarryingPawn".Translate(), ref factorCarryingPawn, "CleanPathfinding.Settings.FactorCarryingPawn.Desc".Translate());
 			options.CheckboxLabeled("CleanPathfinding.Settings.FactorBleeding".Translate(), ref factorBleeding, "CleanPathfinding.Settings.FactorBleeding.Desc".Translate());
 
@@ -167,26 +189,30 @@ namespace CleanPathfinding
 	{
 		public override void ExposeData()
 		{
-			Scribe_Values.Look<int>(ref bias, "bias", 8);
-			Scribe_Values.Look<int>(ref naturalBias, "naturalBias", 4);
-			Scribe_Values.Look<int>(ref roadBias, "roadBias", 4);
-			Scribe_Values.Look<int>(ref extraRange, "extraRange");
+			Scribe_Values.Look<int>(ref bias, "bias", 5);
+			Scribe_Values.Look<int>(ref naturalBias, "naturalBias", 0);
+			Scribe_Values.Look<int>(ref roadBias, "roadBias", 9);
+			Scribe_Values.Look<int>(ref regionModeThreshold, "regionModeThreshold", 100000);
+			Scribe_Values.Look<int>(ref heuristicAdjuster, "heuristicAdjuster", 90);
+			Scribe_Values.Look<int>(ref darknessPenalty, "darknessPenalty", 2);
 			Scribe_Values.Look<bool>(ref factorLight, "factorLight", true);
 			Scribe_Values.Look<bool>(ref factorCarryingPawn, "factorCarryingPawn", true);
 			Scribe_Values.Look<bool>(ref factorBleeding, "factorBleeding", true);
 			Scribe_Values.Look<int>(ref exitRange, "exitRange");
 			Scribe_Values.Look<bool>(ref doorPathing, "doorPathing", true);
-			Scribe_Values.Look<int>(ref doorPathingSide, "doorPathingSide", 400);
-			Scribe_Values.Look<int>(ref doorPathingEmergency, "doorPathingEmergency", 1500);
+			Scribe_Values.Look<int>(ref doorPathingSide, "doorPathingSide", 250);
+			Scribe_Values.Look<int>(ref doorPathingEmergency, "doorPathingEmergency", 500);
 			Scribe_Values.Look<int>(ref wanderDelay, "wanderDelay");
 			Scribe_Values.Look<bool>(ref optimizeCollider, "optimizeCollider", true);
 			Scribe_Values.Look<bool>(ref exitTuning, "exitTuning");
 			Scribe_Values.Look<bool>(ref wanderTuning, "wanderTuning");
+			Scribe_Values.Look<bool>(ref regionPathing, "regionPathing", true);
 			base.ExposeData();
 		}
 
-		static public int bias = 8, naturalBias = 4, roadBias = 4, extraRange, exitRange, doorPathingSide = 400, doorPathingEmergency = 1500, wanderDelay = 0;
-		static public bool factorLight = true, factorCarryingPawn = true, factorBleeding = true, logging, doorPathing = true, optimizeCollider = true, exitTuning = false, wanderTuning = false;
+		static public int bias = 8, naturalBias, roadBias = 9, exitRange, doorPathingSide = 250, doorPathingEmergency = 500,
+			wanderDelay = 0, regionModeThreshold = 1000, heuristicAdjuster = 90, darknessPenalty = 2;
+		static public bool factorLight = true, factorCarryingPawn = true, factorBleeding = true, logging, doorPathing = true, optimizeCollider = true, exitTuning, wanderTuning, regionPathing = true;
 		public static Vector2 scrollPos = Vector2.zero;
 	}
 }

@@ -109,6 +109,7 @@ namespace CleanPathfinding
 			DoorPathingUtility.compCache.Clear();
 			CleanPathfindingUtility.cachedMapID = -1;
 			CleanPathfindingUtility.cachedComp = null;
+			CleanPathfindingUtility.lastFactionID = -1;
 		}
 	}
 
@@ -120,10 +121,11 @@ namespace CleanPathfinding
 			return doorPathing;
 		}
 		static int Postfix(int __result, Building b, Pawn pawn)
-		{ 
+		{
 			return (
+				(pawn?.factionInt?.def.isPlayer ?? false) && //Is pawn the player's?
 				((!usingDoorsExpanded && b is Building_Door) || usingDoorsExpanded) && //Is a door?
-				compCache.TryGetValue(pawn.Map.uniqueID, out MapComponent_DoorPathing mapComp) && //Map component found?
+				compCache.TryGetValue(b.Map.uniqueID, out MapComponent_DoorPathing mapComp) && //Map component found?
 				mapComp.doorRegistry.TryGetValue(b.thingIDNumber, out DoorType doorType) && //Door registered?
 				doorType == DoorType.Exclusive //Door is exclusive?
 			) ? 0 : __result; //Cancel the cost if exclusive, otherwise pass thru
@@ -269,8 +271,13 @@ namespace CleanPathfinding
 		
 		public override void FinalizeInit()
 		{
-			if (!compCache.ContainsKey(map.uniqueID)) compCache.Add(map.uniqueID, this);
+			if (!compCache.ContainsKey(map.uniqueID)) compCache.AddDistinct(map.uniqueID, this);
 			else Log.Warning("[Clean Pathfinding] Tried to register a doorpathing component to a map that already has one. Did the cache not flush?");
+
+			//Validate registry. May potentially be null if doorpathing feature was disabled initially
+			if (doorRegistry == null) doorRegistry = new Dictionary<int, DoorType>();
+
+			//Setup
 			doorCostGrid = new int[map.info.NumCells];
 			RecalculateAllDoors();
 			CheckForAvoidArea();
@@ -308,7 +315,7 @@ namespace CleanPathfinding
 			Messages.Message("CleanPathfinding.DeletedAvoidArea".Translate(), MessageTypeDefOf.PositiveEvent, false);
 			
 			//Reset and rebuild the cost grids
-			doorCostGrid = new int[map.info.NumCells];
+			Array.Clear(doorCostGrid, 0, map.info.NumCells);
 			RecalculateAllDoors();
 		}
 
