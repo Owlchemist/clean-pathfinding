@@ -153,7 +153,7 @@ namespace CleanPathfinding
 				{
 					TerrainDef terrainDef = list[i];
 				
-					ushort index = terrainDef.index;
+					ushort index = terrainDef.shortHash;
 					//Reset to original value
 					if (terrainCache.ContainsKey(index)) terrainDef.extraNonDraftedPerceivedPathCost = terrainCacheOriginalValues[index];
 					else continue;
@@ -196,15 +196,11 @@ namespace CleanPathfinding
 				}
 
 				//Reset the extra pathfinding range curve
-				if (heuristicAdjuster == 0) Custom_DistanceCurve = null;
-				else
+				Custom_DistanceCurve = new SimpleCurve
 				{
-					Custom_DistanceCurve = new SimpleCurve
-					{
-						{ new CurvePoint(40f + heuristicAdjuster, 1f), true },
-						{ new CurvePoint(120f + (heuristicAdjuster * 3), 3f), true }
-					};
-				}
+					{ new CurvePoint(40f + heuristicAdjuster, 1f), true },
+					{ new CurvePoint(120f + (heuristicAdjuster * 3), 3f), true }
+				};
 
 				//If playing, update the pathfinders now
 				if (Current.ProgramState == ProgramState.Playing) foreach (Map map in Find.Maps) map.pathing.RecalculateAllPerceivedPathCosts();
@@ -253,12 +249,12 @@ namespace CleanPathfinding
 				if (factorLight && GameGlowAtFast(map, index) < 0.3f) cost += darknessPenalty;
 			}
 			//Revert if needed, check if cache is available
-			else if (def.index == lastTerrainDefID) cost += lastTerrainCacheCost;
+			else if (def.shortHash == lastTerrainDefID) cost += lastTerrainCacheCost;
 			//If not, use and set...
 			else
 			{
-				lastTerrainDefID = def.index;
-				if (terrainCache.TryGetValue(def.index, out lastTerrainCacheCost))
+				lastTerrainDefID = def.shortHash;
+				if (terrainCache.TryGetValue(def.shortHash, out lastTerrainCacheCost))
 				{
 					//Double-revert back to 0 if this is a clean path (value returned as greater than 0) and this is our faction, meaning it's probably a hauling animal
 					if (lastTerrainCacheCost > 0 && pawn.factionInt != null && pawn.factionInt.def.isPlayer) lastTerrainCacheCost = 0;

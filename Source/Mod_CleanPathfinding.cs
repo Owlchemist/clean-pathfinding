@@ -26,8 +26,8 @@ namespace CleanPathfinding
 					(terrainDef.generatedFilth == null && (terrainDef.defName.Contains("_Rough"))) //Is clean but avoided regardless?
 				)
 				{
-					CleanPathfindingUtility.terrainCacheOriginalValues.Add(terrainDef.index, terrainDef.extraNonDraftedPerceivedPathCost);
-					CleanPathfindingUtility.terrainCache.Add(terrainDef.index, terrainDef.extraNonDraftedPerceivedPathCost);
+					CleanPathfindingUtility.terrainCacheOriginalValues.Add(terrainDef.shortHash, terrainDef.extraNonDraftedPerceivedPathCost);
+					CleanPathfindingUtility.terrainCache.Add(terrainDef.shortHash, terrainDef.extraNonDraftedPerceivedPathCost);
 				} 
 			}
             

@@ -2,9 +2,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<Product>Clean Pathfinding</Product>
-		<AssemblyVersion>2.0.35</AssemblyVersion>
+		<AssemblyVersion>2.0.37</AssemblyVersion>
 		<Version>1.4</Version>
-		<Copyright>2022</Copyright>
+		<Copyright>$([System.DateTime]::Now.ToString('yyyy'))</Copyright>
 		<Company>Owlchemist</Company>
 		<TargetFramework>net48</TargetFramework>
 		<LangVersion>preview</LangVersion>

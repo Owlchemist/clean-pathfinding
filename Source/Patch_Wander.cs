@@ -15,7 +15,7 @@ namespace CleanPathfinding
         }
         public static void Postfix(Job __result)
         {
-			if (__result?.def.index == RimWorld.JobDefOf.Wait_Wander.index) __result.expiryInterval += wanderDelay;
+			if (__result?.def.shortHash == RimWorld.JobDefOf.Wait_Wander.shortHash) __result.expiryInterval += wanderDelay;
         }
     }
 }
