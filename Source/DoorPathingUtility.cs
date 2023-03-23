@@ -226,8 +226,9 @@ namespace CleanPathfinding
 
 		public static void DrawDoorField(Thing thing)
 		{
-			if ( ((!usingDoorsExpanded && thing is Building_Door) || usingDoorsExpanded) && //Filter on doors normally, or check all buildings if using Doors Expanded
-			compCache.TryGetValue(thing.Map.uniqueID, out MapComponent_DoorPathing mapComp) && 
+			Map map = thing.Map;
+			if ( map != null && ((!usingDoorsExpanded && thing is Building_Door) || usingDoorsExpanded) && //Filter on doors normally, or check all buildings if using Doors Expanded
+			compCache.TryGetValue(map.uniqueID, out MapComponent_DoorPathing mapComp) && 
 			mapComp.doorRegistry.TryGetValue(thing.thingIDNumber, out DoorType doorType))
 			{
 				Color color;
@@ -432,7 +433,7 @@ namespace CleanPathfinding
 					}
 				}
 				//Sanity check doors
-				if (logging && Prefs.DevMode) Log.Message("[Clean Pathfinding] Doors in new room layout: " + doorsInRoom.Count.ToString());
+				if (logging && Prefs.DevMode) Log.Message("[Clean Pathfinding] Doors in new room layout: " + doorsInRoom.Count);
 				if (doorsInRoom.Count > 0)
 				{
 					foreach (Building item in doorsInRoom)
@@ -451,7 +452,7 @@ namespace CleanPathfinding
 				}
 			catch (System.Exception ex)
 			{
-				Log.Warning("[Clean Pathfinding] Could not validate doors at " + c.ToString() + " (update: " + roomUpdate.ToString() + ") for some-odd reason: " + ex);
+				Log.Warning("[Clean Pathfinding] Could not validate doors at " + c + " (update: " + roomUpdate + ") for some-odd reason: " + ex);
 				return 0;
 			}
 		}

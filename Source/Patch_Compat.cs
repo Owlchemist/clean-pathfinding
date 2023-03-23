@@ -14,22 +14,13 @@ namespace CleanPathfinding
 
         static bool Prepare()
         {
-			ModContentPack mod = LoadedModManager.RunningMods.FirstOrDefault(m => m.Name == "Doors Expanded");
-			Type type = mod?.assemblies.loadedAssemblies.FirstOrDefault(a => a.GetName().Name == "DoorsExpanded")?.GetType("DoorsExpanded.Building_DoorExpanded");
-        	target = AccessTools.DeclaredMethod(type, "GetGizmos");
-
-            if (target == null)
-			{
-                if (mod != null) Log.Warning("[Clean Pathfinding] Failed to integrate with Doors Expanded. Method not found.");
-                return false;
-            }
-
-            DoorPathingUtility.usingDoorsExpanded = true;
-            return true;
+        	target = AccessTools.DeclaredMethod(AccessTools.TypeByName("DoorsExpanded.Building_DoorExpanded"), "GetGizmos");
+            return target != null;
         }
 
         static MethodBase TargetMethod()
         {
+            DoorPathingUtility.usingDoorsExpanded = true;
             return target;
         }
 

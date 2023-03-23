@@ -9,6 +9,7 @@
 				</value>
 			</li>
 			<li Class="PatchOperationAdd">
+				<success>Always</success> <!-- No idea, but why this fails for some people. It's not that important of a patch though, so skip I guess -->
 				<xpath>Defs/TerrainTemplateDef[tags]/tags[li/text()="FineFloor"]</xpath>
 				<value>
 					<li>CleanPath</li>

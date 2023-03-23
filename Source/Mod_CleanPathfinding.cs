@@ -14,24 +14,36 @@ namespace CleanPathfinding
 	{
         static Setup()
         {
+			var report = new List<string>();
 			var list = DefDatabase<TerrainDef>.AllDefsListForReading;
-			var length = list.Count;
-			for (int i = 0; i < length; i++)
+			for (int i = list.Count; i-- > 0;)
 			{
 				TerrainDef terrainDef = list[i];
+
+				if (terrainDef.destroyEffectWater != null)
+				{
+					if (terrainDef.tags == null) terrainDef.tags = new List<string>();
+					terrainDef.tags.Add("CleanPath");
+				}
+
+				bool isClean = terrainDef.tags?.Contains("CleanPath") ?? false;
+
 				if
 				(
 					terrainDef.generatedFilth != null || //Generates filth?
-					(terrainDef.tags?.Contains("CleanPath") ?? false) || //Is a road?
-					(terrainDef.generatedFilth == null && (terrainDef.defName.Contains("_Rough"))) //Is clean but avoided regardless?
+					isClean || //Is a road?
+					(terrainDef.generatedFilth == null && terrainDef.defName.Contains("_Rough") ) //Is clean but avoided regardless?
 				)
 				{
 					CleanPathfindingUtility.terrainCacheOriginalValues.Add(terrainDef.shortHash, terrainDef.extraNonDraftedPerceivedPathCost);
 					CleanPathfindingUtility.terrainCache.Add(terrainDef.shortHash, terrainDef.extraNonDraftedPerceivedPathCost);
+
+					if (isClean) report.Add(terrainDef.label);
 				} 
 			}
             
             CleanPathfindingUtility.UpdatePathCosts();
+			if (Prefs.DevMode) Log.Message("[Clean Pathfinding] The following terrains apply to road attraction:\n - " + string.Join("\n - ", report));
 		}
 	}
     public class Mod_CleanPathfinding : Mod
@@ -189,30 +201,46 @@ namespace CleanPathfinding
 	{
 		public override void ExposeData()
 		{
-			Scribe_Values.Look<int>(ref bias, "bias", 5);
-			Scribe_Values.Look<int>(ref naturalBias, "naturalBias", 0);
-			Scribe_Values.Look<int>(ref roadBias, "roadBias", 9);
-			Scribe_Values.Look<int>(ref regionModeThreshold, "regionModeThreshold", 100000);
-			Scribe_Values.Look<int>(ref heuristicAdjuster, "heuristicAdjuster", 90);
-			Scribe_Values.Look<int>(ref darknessPenalty, "darknessPenalty", 2);
-			Scribe_Values.Look<bool>(ref factorLight, "factorLight", true);
-			Scribe_Values.Look<bool>(ref factorCarryingPawn, "factorCarryingPawn", true);
-			Scribe_Values.Look<bool>(ref factorBleeding, "factorBleeding", true);
-			Scribe_Values.Look<int>(ref exitRange, "exitRange");
-			Scribe_Values.Look<bool>(ref doorPathing, "doorPathing", true);
-			Scribe_Values.Look<int>(ref doorPathingSide, "doorPathingSide", 250);
-			Scribe_Values.Look<int>(ref doorPathingEmergency, "doorPathingEmergency", 500);
-			Scribe_Values.Look<int>(ref wanderDelay, "wanderDelay");
-			Scribe_Values.Look<bool>(ref optimizeCollider, "optimizeCollider", true);
-			Scribe_Values.Look<bool>(ref exitTuning, "exitTuning");
-			Scribe_Values.Look<bool>(ref wanderTuning, "wanderTuning");
-			Scribe_Values.Look<bool>(ref regionPathing, "regionPathing", true);
+			Scribe_Values.Look(ref bias, "bias", 5);
+			Scribe_Values.Look(ref naturalBias, "naturalBias", 0);
+			Scribe_Values.Look(ref roadBias, "roadBias", 9);
+			Scribe_Values.Look(ref regionModeThreshold, "regionModeThreshold", 100000);
+			Scribe_Values.Look(ref heuristicAdjuster, "heuristicAdjuster", 90);
+			Scribe_Values.Look(ref darknessPenalty, "darknessPenalty", 2);
+			Scribe_Values.Look(ref factorLight, "factorLight", true);
+			Scribe_Values.Look(ref factorCarryingPawn, "factorCarryingPawn", true);
+			Scribe_Values.Look(ref factorBleeding, "factorBleeding", true);
+			Scribe_Values.Look(ref exitRange, "exitRange");
+			Scribe_Values.Look(ref doorPathing, "doorPathing", true);
+			Scribe_Values.Look(ref doorPathingSide, "doorPathingSide", 250);
+			Scribe_Values.Look(ref doorPathingEmergency, "doorPathingEmergency", 500);
+			Scribe_Values.Look(ref wanderDelay, "wanderDelay");
+			Scribe_Values.Look(ref optimizeCollider, "optimizeCollider", true);
+			Scribe_Values.Look(ref exitTuning, "exitTuning");
+			Scribe_Values.Look(ref wanderTuning, "wanderTuning");
+			Scribe_Values.Look(ref regionPathing, "regionPathing", true);
 			base.ExposeData();
 		}
 
-		static public int bias = 8, naturalBias, roadBias = 9, exitRange, doorPathingSide = 250, doorPathingEmergency = 500,
-			wanderDelay = 0, regionModeThreshold = 1000, heuristicAdjuster = 90, darknessPenalty = 2;
-		static public bool factorLight = true, factorCarryingPawn = true, factorBleeding = true, logging, doorPathing = true, optimizeCollider = true, exitTuning, wanderTuning, regionPathing = true;
+		static public int bias = 8,
+			naturalBias,
+			roadBias = 9,
+			exitRange,
+			doorPathingSide = 250,
+			doorPathingEmergency = 500,
+			wanderDelay = 0,
+			regionModeThreshold = 1000,
+			heuristicAdjuster = 90,
+			darknessPenalty = 2;
+		static public bool factorLight = true,
+			factorCarryingPawn = true,
+			factorBleeding = true,
+			logging,
+			doorPathing = true,
+			optimizeCollider = true,
+			exitTuning,
+			wanderTuning,
+			regionPathing = true;
 		public static Vector2 scrollPos = Vector2.zero;
 	}
 }

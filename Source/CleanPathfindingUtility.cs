@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using System.Linq;
-using static CleanPathfinding.CleanPathfindingUtility;
 using static CleanPathfinding.ModSettings_CleanPathfinding;
  
 namespace CleanPathfinding
@@ -22,33 +21,13 @@ namespace CleanPathfinding
     {
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
-			/*
-			var modifiedCodes = instructions.ToList();
-			var length = modifiedCodes.Count;
-			for (int i = 0; i < length; i++)
-			{
-				var code = modifiedCodes[i];
-				if (code.opcode == OpCodes.Call && code.OperandIs(AccessTools.Method(typeof(PathFinder), nameof(PathFinder.PfProfilerBeginSample), new Type[] { typeof(string) })))
-				{
-					var countBackwards = 0;
-					for (int j = i; j != 0; j--)
-					{
-						var tmp = modifiedCodes[j];
-						if (tmp.opcode == OpCodes.Ldarg_0) break;
-						countBackwards++;
-					}
-					Log.Message(modifiedCodes[i - countBackwards + 1].opcode.ToString());
-					Log.Message(modifiedCodes[(i - countBackwards + 1) + countBackwards].operand.ToString());
-					modifiedCodes.RemoveRange(i - countBackwards + 1, countBackwards);
-					break;
-				}
-			}
-			*/
-            bool ran = false;
-            int offset = -1;
-			bool searchForObjects = false;
-			bool thresholdReplaced = false;
-			int objectsFound = 0;
+            int offset = -1, objectsFound = 0;
+			bool ran = false, searchForObjects = false, thresholdReplaced = false;
+
+			var method_regionModeThreshold = AccessTools.Field(typeof(ModSettings_CleanPathfinding), nameof(ModSettings_CleanPathfinding.regionModeThreshold));
+			var field_extraDraftedPerceivedPathCost = AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraDraftedPerceivedPathCost));
+			var field_extraNonDraftedPerceivedPathCost = AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraNonDraftedPerceivedPathCost));
+
 			object[] objects = new object[3];
             foreach (var code in instructions)
             {
@@ -56,10 +35,10 @@ namespace CleanPathfinding
 				if (!thresholdReplaced && code.opcode == OpCodes.Ldc_I4 && code.OperandIs(100000))
                 {
 					code.opcode = OpCodes.Ldsfld;
-					code.operand = AccessTools.Field(typeof(ModSettings_CleanPathfinding), nameof(ModSettings_CleanPathfinding.regionModeThreshold));
+					code.operand = method_regionModeThreshold;
                 }
                 yield return code;
-				if (!searchForObjects && code.opcode == OpCodes.Ldfld && code.OperandIs(AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraDraftedPerceivedPathCost))))
+				if (!searchForObjects && code.opcode == OpCodes.Ldfld && code.OperandIs(field_extraDraftedPerceivedPathCost))
                 {
                     searchForObjects = true;
                     continue;
@@ -72,7 +51,7 @@ namespace CleanPathfinding
 					//As of 12/5, object 0 should be 48, object 1 should be 12, and object 2 should be 45
 				}
 
-                if (offset == -1 && code.opcode == OpCodes.Ldfld && code.OperandIs(AccessTools.Field(typeof(TerrainDef), nameof(TerrainDef.extraNonDraftedPerceivedPathCost))))
+                if (offset == -1 && code.opcode == OpCodes.Ldfld && code.OperandIs(field_extraNonDraftedPerceivedPathCost))
                 {
                     offset = 0;
                     continue;
@@ -98,49 +77,24 @@ namespace CleanPathfinding
         }
     }
     
-	[HarmonyPatch (typeof(PathFinder), nameof(PathFinder.DetermineHeuristicStrength))]
-    static class Patch_DetermineHeuristicStrength
-    {
-        static bool Prefix(ref float __result, Pawn pawn, IntVec3 start, LocalTargetInfo dest)
-        {
-            if (heuristicAdjuster == 0 || pawn == null || pawn.def.race.intelligence < Intelligence.Humanlike) return true;
-            __result = heuristicAdjuster == 200 ? 1f : Custom_DistanceCurve.Evaluate((start - dest.Cell).LengthHorizontal);
-            return false;
-        }
-    }
-	
-	[HarmonyPatch (typeof(TickManager), nameof(TickManager.DoSingleTick))]
-	static class FlushHostilityCache
-    {
-		static int ticks;
-        static void Postfix()
-        {
-            if (++ticks == 600)
-			{
-				ticks = 0;
-				lastFactionID = -1;
-			}
-        }
-    }
 	#endregion
 
     public static class CleanPathfindingUtility
 	{	
 		public static Dictionary<ushort, int> terrainCache = new Dictionary<ushort, int>(), terrainCacheOriginalValues = new Dictionary<ushort, int>();
 		public static SimpleCurve Custom_DistanceCurve;
-		static List<string> report = new List<string>();
-		public static MapComponent_DoorPathing cachedComp;
+		public static MapComponent_DoorPathing cachedComp; //the last map component used by the door cost adjustments. It will be reused if the map hash is the same
 		static bool lastFactionHostileCache, lastPawnReversionCache;
 		public static int cachedMapID = -1, lastFactionID = -1;
 		static int loggedOnTick, calls, lastTerrainCacheCost, lastPawnID;
-		static ushort lastTerrainDefID = 0;
+		static ushort lastTerrainDefID;
 
 		public static void UpdatePathCosts()
 		{
 			try
 			{
 				//Reset the cache
-				report.Clear();
+				List<string> report = new List<string>();
 				foreach (ushort key in terrainCache.Keys.ToList())
 				{
 					if (terrainCacheOriginalValues.TryGetValue(key, out int originalValue)) terrainCache[key] = originalValue;
@@ -221,9 +175,10 @@ namespace CleanPathfinding
 			if (pawn.thingIDNumber != lastPawnID)
 			{
 				lastPawnID = pawn.thingIDNumber;
+				var faction = pawn.Faction;
 
-				revert = ((pawn.factionInt == null || pawn.def.race.intelligence != Intelligence.Humanlike) || // Animal or other entity?
-				(!pawn.factionInt.def.isPlayer && IsHostileFast(pawn.factionInt)) || //They are hostile
+				revert = ((faction == null || pawn.def.race.intelligence == Intelligence.Animal) || // Animal or other entity?
+				(!faction.def.isPlayer && IsHostileFast(faction)) || //They are hostile
 				(factorCarryingPawn && pawn.carryTracker != null && pawn.carryTracker.CarriedThing != null && pawn.carryTracker.CarriedThing.def.category == ThingCategory.Pawn) ||  //They are carrying someone
 				(factorBleeding && pawn.health.hediffSet.cachedBleedRate > 0.1f)); //They are bleeding
 
@@ -267,14 +222,15 @@ namespace CleanPathfinding
 			if (logging && Verse.Prefs.DevMode)
 			{
 				++calls;
-				if (Find.TickManager.ticksGameInt != loggedOnTick)
+				if (Current.gameInt.tickManager.ticksGameInt != loggedOnTick)
 				{
-					loggedOnTick = Find.TickManager.ticksGameInt;
-					if (calls != 0) Log.Message("[Clean Pathfinding] Calls last pathfinding: " + calls.ToString());
+					loggedOnTick = Current.gameInt.tickManager.ticksGameInt;
+					if (calls != 0) Log.Message("[Clean Pathfinding] Calls last pathfinding: " + calls);
 					calls = 0;
 				}
 				if (cost < 0) cost = 0;
-				map.debugDrawer.FlashCell(map.cellIndices.IndexToCell(index), cost , cost.ToString());
+				var cell = map.cellIndices.IndexToCell(index);
+				if (!map.debugDrawer.debugCells.Any(x => x.c == cell)) map.debugDrawer.FlashCell(cell, cost, cost.ToString());
 			}
 			skipAdjustment:
 			if (cost < 0) return 0;
@@ -284,14 +240,15 @@ namespace CleanPathfinding
 			bool IsHostileFast(Faction faction)
 			{
 				//Check and set cache
+				if (Current.gameInt.tickManager.ticksGameInt % 600 == 0) lastFactionID = -1; // Reset every 10th second
 				if (faction.loadID == lastFactionID) return lastFactionHostileCache;
 				else lastFactionID = faction.loadID;
 
 				//Look through their relationships table and look up the player faction, then record to cache
-				var length = faction.relations.Count;
-				for (int i = 0; i < length; i++)
+				var relations = faction.relations;
+				for (int i = relations.Count; i-- > 0;)
 				{
-					var tmp = faction.relations[i];
+					var tmp = relations[i];
 					if (tmp.other == Current.gameInt.worldInt.factionManager.ofPlayer)
 					{
 						lastFactionHostileCache = tmp.kind == FactionRelationKind.Hostile;
@@ -318,7 +275,5 @@ namespace CleanPathfinding
 
 			#endregion
         }
-	
-		static public void PfProfileNoOp() { }
 	}
 }
