@@ -113,7 +113,7 @@ namespace CleanPathfinding
 					else continue;
 					
 					//Attraction to roads
-					if (roadBias > 0 && (terrainDef.tags?.Contains("CleanPath") ?? false))
+					if (!Setup.safetyNeeded && roadBias > 0 && (terrainDef.tags?.Contains("CleanPath") ?? false))
 					{
 						terrainDef.extraNonDraftedPerceivedPathCost -= roadBias;
 						terrainCache[index] += roadBias;

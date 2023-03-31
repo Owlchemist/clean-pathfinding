@@ -12,7 +12,8 @@ namespace CleanPathfinding
 	[StaticConstructorOnStartup]
 	public static class Setup
 	{
-        static Setup()
+        static public bool safetyNeeded = true;
+		static Setup()
         {
 			var report = new List<string>();
 			var list = DefDatabase<TerrainDef>.AllDefsListForReading;
@@ -41,9 +42,41 @@ namespace CleanPathfinding
 					if (isClean) report.Add(terrainDef.label);
 				} 
 			}
+
+			SafetyCheck();
             
             CleanPathfindingUtility.UpdatePathCosts();
 			if (Prefs.DevMode) Log.Message("[Clean Pathfinding] The following terrains apply to road attraction:\n - " + string.Join("\n - ", report));
+		}
+
+		static void SafetyCheck()
+		{
+			var list = LoadedModManager.RunningModsListForReading;
+            for (int i = list.Count; i-- > 0;)
+            {
+                string name = list[i].packageIdPlayerFacingInt;
+                if (name == "Haplo.Miscellaneous.Robots")
+				{
+					Print(name);
+					return;
+				}
+				if (name == "BiomesTeam.BiomesIslands")
+				{
+					Print(name);
+					return;
+				}
+				if (name == "RH2.Faction.VOID")
+				{
+					Print(name);
+					return;
+				}
+			}
+			safetyNeeded = false;
+
+			static void Print(string mod)
+			{
+				Log.Warning($"[Clean Pathfinding] the mod {mod} is partially incompatible. The 'road attraction' calculations will be skipped.");
+			}
 		}
 	}
     public class Mod_CleanPathfinding : Mod
@@ -58,79 +91,139 @@ namespace CleanPathfinding
 
 		public override void DoSettingsWindowContents(Rect inRect)
 		{
-			inRect.yMin += 20f;
-			inRect.yMax -= 20f;
-			Listing_Standard options = new Listing_Standard();
-			Rect outRect = new Rect(inRect.x, inRect.y, inRect.width, inRect.height);
-			Rect rect = new Rect(0f, 0f, inRect.width - 30f, inRect.height * 1.5f);
-			Widgets.BeginScrollView(outRect, ref scrollPos, rect, true);
+			//========Setup tabs=========
+			GUI.BeginGroup(inRect);
+			var tabs = new List<TabRecord>();
+			tabs.Add(new TabRecord("CleanPathfinding.Settings.Header.Tuning".Translate(), delegate { selectedTab = Tab.tuning; }, selectedTab == Tab.tuning));
+			tabs.Add(new TabRecord("CleanPathfinding.Settings.Header.Doorpathing".Translate(), delegate { selectedTab = Tab.doorPathing; }, selectedTab == Tab.doorPathing));
+			tabs.Add(new TabRecord("CleanPathfinding.Settings.Header.Rules".Translate(), delegate { selectedTab = Tab.rules; }, selectedTab == Tab.rules));
+			tabs.Add(new TabRecord("CleanPathfinding.Settings.Header.Misc".Translate(), delegate { selectedTab = Tab.misc; }, selectedTab == Tab.misc));
 
-			options.Begin(rect);
-			options.Gap();
-			options.Label("CleanPathfinding.Settings.Header.Tuning".Translate());
-			options.GapLine(); //======================================
-			options.Label("CleanPathfinding.Settings.Bias".Translate("5", "0", "12") + bias, -1f, "CleanPathfinding.Settings.Bias.Desc".Translate());
-			bias = (int)options.Slider((float)bias, 0f, 12f);
+			Rect rect = new Rect(0f, 32f, inRect.width, inRect.height - 32f);
+			Widgets.DrawMenuSection(rect);
+			TabDrawer.DrawTabs(new Rect(0f, 32f, inRect.width, Text.LineHeight), tabs);
 
-			options.Label("CleanPathfinding.Settings.NaturalBias".Translate("0", "0", "12") + naturalBias, -1f, "CleanPathfinding.Settings.NaturalBias.Desc".Translate());
-			naturalBias = (int)options.Slider((float)naturalBias, 0f, 12f);
+			if (selectedTab == Tab.tuning) DrawTuning();
+			else if (selectedTab == Tab.doorPathing) DrawDoorpathing();
+			else if (selectedTab == Tab.rules) DrawRules();
+			else DrawMisc();
+			GUI.EndGroup();
 
-			options.Label("CleanPathfinding.Settings.RoadBias".Translate("9", "0", "12") + roadBias, -1f, "CleanPathfinding.Settings.RoadBias.Desc".Translate());
-			roadBias = (int)options.Slider((float)roadBias, 0f, 12f);
+			void DrawTuning()
+			{
+				Listing_Standard options = new Listing_Standard();
+				options.Begin(inRect.ContractedBy(15f));
+				var before = enableTuning;
+				options.CheckboxLabeled("CleanPathfinding.Settings.EnableTuning".Translate(), ref enableTuning, "CleanPathfinding.Settings.EnableTuning.Desc".Translate());
+				if (before != enableTuning)
+				{
+					//TODO: Need some sorta default resetter method
+					bias = 5;
+					naturalBias = 0;
+					roadBias = 9;
+					heuristicAdjuster = 90;
+					regionPathing = true;
+					regionModeThreshold = 1000;
+				}
+				options.GapLine();
+				options.End();
+				options.Begin(new Rect(inRect.x + 15, inRect.y + 55, inRect.width - 30, inRect.height - 30));
 
-			options.Label("CleanPathfinding.Settings.HeuristicAdjuster".Translate("90", "0", "200", heuristicAdjuster == 200 ? "MAX" : heuristicAdjuster), -1f, "CleanPathfinding.Settings.HeuristicAdjuster.Desc".Translate());
-			heuristicAdjuster = (int)options.Slider((float)heuristicAdjuster, 0f, 200f);
+				if (enableTuning)
+				{
+					options.Label("CleanPathfinding.Settings.Bias".Translate("5", "0", "12") + bias, -1f, "CleanPathfinding.Settings.Bias.Desc".Translate());
+					bias = (int)options.Slider((float)bias, 0f, 12f);
+
+					options.Label("CleanPathfinding.Settings.NaturalBias".Translate("0", "0", "12") + naturalBias, -1f, "CleanPathfinding.Settings.NaturalBias.Desc".Translate());
+					naturalBias = (int)options.Slider((float)naturalBias, 0f, 12f);
+
+					options.Label("CleanPathfinding.Settings.RoadBias".Translate("9", "0", "12") + roadBias, -1f, "CleanPathfinding.Settings.RoadBias.Desc".Translate());
+					roadBias = (int)options.Slider((float)roadBias, 0f, 12f);
+
+					options.Label("CleanPathfinding.Settings.HeuristicAdjuster".Translate("90", "0", "200", heuristicAdjuster == 200 ? "Max".Translate() : heuristicAdjuster), -1f, "CleanPathfinding.Settings.HeuristicAdjuster.Desc".Translate());
+					heuristicAdjuster = (int)options.Slider((float)heuristicAdjuster, 0f, 200f);
+					
+					options.CheckboxLabeled("CleanPathfinding.Settings.EnableRegionPathing".Translate(), ref regionPathing, "CleanPathfinding.Settings.EnableRegionPathing.Desc".Translate() + "CleanPathfinding.Settings.RegionModeThreshold.Desc".Translate());
+					if (regionPathing)
+					{
+						if (regionModeThreshold == 100000) regionModeThreshold = 1000; //Reset to default if just enabled
+						options.Label("CleanPathfinding.Settings.RegionModeThreshold".Translate("1000", "500", "2000") + regionModeThreshold, -1f, "CleanPathfinding.Settings.RegionModeThreshold.Desc".Translate().CapitalizeFirst());
+						regionModeThreshold = (int)options.Slider((float)regionModeThreshold, 500f, 2000f);
+					}
+					else regionModeThreshold = 100000;
+				}
+				else
+				{
+					bias = naturalBias = roadBias = 0;
+					regionModeThreshold = 100000;
+					regionPathing = false;
+				}
+				options.End();
+			}
 			
-			options.CheckboxLabeled("CleanPathfinding.Settings.EnableRegionPathing".Translate(), ref regionPathing, "CleanPathfinding.Settings.EnableRegionPathing.Desc".Translate() + "CleanPathfinding.Settings.RegionModeThreshold.Desc".Translate());
-			if (regionPathing)
+			void DrawDoorpathing()
 			{
-				if (regionModeThreshold == 100000) regionModeThreshold = 1000; //Reset to default if just enabled
-				options.Label("CleanPathfinding.Settings.RegionModeThreshold".Translate("1000", "500", "2000") + regionModeThreshold, -1f, "CleanPathfinding.Settings.RegionModeThreshold.Desc".Translate().CapitalizeFirst());
-				regionModeThreshold = (int)options.Slider((float)regionModeThreshold, 500f, 2000f);
-			}
-			else regionModeThreshold = 100000;
+				Listing_Standard options = new Listing_Standard();
+				options.Begin(inRect.ContractedBy(15f));
+				if (Current.ProgramState != ProgramState.Playing) 
+				{
+					options.CheckboxLabeled("CleanPathfinding.Settings.DoorPathing".Translate(), ref doorPathing, "CleanPathfinding.Settings.DoorPathing.Desc".Translate());
+				}
+				else
+				{
+					options.Label("CleanPathfinding.Settings.DoorPathing.Notice".Translate());
+				}
+				options.GapLine();
+				options.End();
+				options.Begin(new Rect(inRect.x + 15, inRect.y + 55, inRect.width - 30, inRect.height - 30));
 
-			options.Gap();
-			options.Label("CleanPathfinding.Settings.Header.Rules".Translate());
-			options.GapLine(); //======================================
-			options.CheckboxLabeled("CleanPathfinding.Settings.FactorLight".Translate(), ref factorLight, "CleanPathfinding.Settings.FactorLight.Desc".Translate());
-			if (factorLight)
-			{
-				options.Label("CleanPathfinding.Settings.DarknessPenalty".Translate("2", "1", "6") + darknessPenalty, -1f, "CleanPathfinding.Settings.DarknessPenalty.Desc".Translate());
-				darknessPenalty = (int)options.Slider((float)darknessPenalty, 1, 6);
-			}
-			options.CheckboxLabeled("CleanPathfinding.Settings.FactorCarryingPawn".Translate(), ref factorCarryingPawn, "CleanPathfinding.Settings.FactorCarryingPawn.Desc".Translate());
-			options.CheckboxLabeled("CleanPathfinding.Settings.FactorBleeding".Translate(), ref factorBleeding, "CleanPathfinding.Settings.FactorBleeding.Desc".Translate());
+				if (doorPathing)
+				{
+					options.Label("CleanPathfinding.Settings.DoorPathingSide".Translate("250", "50", "500") + doorPathingSide, -1f, "CleanPathfinding.Settings.DoorPathingSide.Desc".Translate());
+					doorPathingSide = (int)options.Slider((float)doorPathingSide, 50f, 500f);
+					options.Label("CleanPathfinding.Settings.DoorPathingEmergency".Translate("500", "500", "1000") + doorPathingEmergency, -1f, "CleanPathfinding.Settings.DoorPathingEmergency.Desc".Translate());
+					doorPathingEmergency = (int)options.Slider((float)doorPathingEmergency, 500f, 1000f);
+				}
 
-			options.Gap();
-			options.Label("CleanPathfinding.Settings.Header.Misc".Translate());
-			options.GapLine(); //======================================
-			options.CheckboxLabeled("CleanPathfinding.Settings.OptimizeCollider".Translate(), ref optimizeCollider, "CleanPathfinding.Settings.OptimizeCollider.Desc".Translate());
-			if (Current.ProgramState != ProgramState.Playing) options.CheckboxLabeled("CleanPathfinding.Settings.DoorPathing".Translate(), ref doorPathing, "CleanPathfinding.Settings.DoorPathing.Desc".Translate());
-			if (doorPathing)
-			{
-				options.Label("CleanPathfinding.Settings.DoorPathingSide".Translate("250", "50", "500") + doorPathingSide, -1f, "CleanPathfinding.Settings.DoorPathingSide.Desc".Translate());
-				doorPathingSide = (int)options.Slider((float)doorPathingSide, 50f, 500f);
-				options.Label("CleanPathfinding.Settings.DoorPathingEmergency".Translate("500", "500", "1000") + doorPathingEmergency, -1f, "CleanPathfinding.Settings.DoorPathingEmergency.Desc".Translate());
-				doorPathingEmergency = (int)options.Slider((float)doorPathingEmergency, 500f, 1000f);
+				options.End();
 			}
-			options.CheckboxLabeled("CleanPathfinding.Settings.EnableExitTuning".Translate(), ref exitTuning, "CleanPathfinding.Settings.ExitRange.Warning".Translate());
-			if (exitTuning)
+
+			void DrawRules()
 			{
-				options.Label("CleanPathfinding.Settings.ExitRange".Translate("0", "0", "200") + exitRange, -1f, "CleanPathfinding.Settings.ExitRange.Desc".Translate());
+				Listing_Standard options = new Listing_Standard();
+				options.Begin(new Rect(inRect.x + 15, inRect.y + 55, inRect.width - 30, inRect.height - 30));
+
+				options.CheckboxLabeled("CleanPathfinding.Settings.FactorCarryingPawn".Translate(), ref factorCarryingPawn, "CleanPathfinding.Settings.FactorCarryingPawn.Desc".Translate());
+				options.CheckboxLabeled("CleanPathfinding.Settings.FactorBleeding".Translate(), ref factorBleeding, "CleanPathfinding.Settings.FactorBleeding.Desc".Translate());
+				
+				options.Label("CleanPathfinding.Settings.DarknessPenalty".Translate("2", "0", "6") + (darknessPenalty == 0f ? "Off".Translate() : darknessPenalty), -1f, "CleanPathfinding.Settings.DarknessPenalty.Desc".Translate());
+				darknessPenalty = (int)options.Slider((float)darknessPenalty, 0, 6);
+				factorLight = darknessPenalty != 0f;
+
+				options.End();
+			}
+
+			void DrawMisc()
+			{
+				Listing_Standard options = new Listing_Standard();
+				options.Begin(new Rect(inRect.x + 15, inRect.y + 55, inRect.width - 30, inRect.height - 30));
+
+				
+				options.Label("CleanPathfinding.Settings.ExitRange".Translate("0", "0", "200") + (exitRange == 0f ? "Off".Translate() : exitRange), -1f, "CleanPathfinding.Settings.ExitRange.Desc".Translate());
 				exitRange = (int)options.Slider((float)exitRange, 0f, 200f);
-			}
-			options.CheckboxLabeled("CleanPathfinding.Settings.EnableWanderTuning".Translate(), ref wanderTuning, "CleanPathfinding.Settings.EnableWanderTuning.Desc".Translate());
-			if (wanderTuning)
-			{
-				options.Label("CleanPathfinding.Settings.WanderDelay".Translate("0", "-2", "10", (int)(wanderDelay / 60f)), -1f, "CleanPathfinding.Settings.WanderDelay.Desc".Translate());
+				exitTuning = exitRange > 0f;
+				
+				float wanderDelayRounded = (float)System.Math.Round((wanderDelay / 60f), 1);
+				options.Label("CleanPathfinding.Settings.WanderDelay".Translate("0", "-2", "10", 
+					wanderTuning ? (wanderDelayRounded.ToString() + "Seconds".Translate()) : "Off".Translate() ), -1f, "CleanPathfinding.Settings.WanderDelay.Desc".Translate());
 				wanderDelay = (int)(options.Slider((float)wanderDelay, -118f, 600f));
-			}
-			if (Prefs.DevMode) options.CheckboxLabeled("DevMode: Enable logging", ref logging, null);
+				wanderTuning = wanderDelay < -20f || wanderDelay > 20f;
+				
+				options.CheckboxLabeled("CleanPathfinding.Settings.OptimizeCollider".Translate(), ref optimizeCollider, "CleanPathfinding.Settings.OptimizeCollider.Desc".Translate());
+				if (Prefs.DevMode) options.CheckboxLabeled("DevMode: Enable logging", ref logging, null);
 
-			options.End();
-			Widgets.EndScrollView();
-			base.DoSettingsWindowContents(inRect);
+				options.End();
+			}
 		}
 
 		public override string SettingsCategory()
@@ -219,6 +312,7 @@ namespace CleanPathfinding
 			Scribe_Values.Look(ref exitTuning, "exitTuning");
 			Scribe_Values.Look(ref wanderTuning, "wanderTuning");
 			Scribe_Values.Look(ref regionPathing, "regionPathing", true);
+			Scribe_Values.Look(ref enableTuning, "enableTuning", true);
 			base.ExposeData();
 		}
 
@@ -240,7 +334,11 @@ namespace CleanPathfinding
 			optimizeCollider = true,
 			exitTuning,
 			wanderTuning,
-			regionPathing = true;
+			regionPathing = true,
+			enableTuning = true;
 		public static Vector2 scrollPos = Vector2.zero;
+
+		public static Tab selectedTab = Tab.tuning;
+		public enum Tab { tuning, doorPathing, rules, misc };
 	}
 }

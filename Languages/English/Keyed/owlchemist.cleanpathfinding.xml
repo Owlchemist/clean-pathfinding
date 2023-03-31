@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <LanguageData>
-	<CleanPathfinding.Settings.Header.Tuning>Tuning:</CleanPathfinding.Settings.Header.Tuning>
-	<CleanPathfinding.Settings.Header.Rules>Rules:</CleanPathfinding.Settings.Header.Rules>
-	<CleanPathfinding.Settings.Header.Misc>Misc:</CleanPathfinding.Settings.Header.Misc>
+	<CleanPathfinding.Settings.Header.Tuning>Tuning</CleanPathfinding.Settings.Header.Tuning>
+	<CleanPathfinding.Settings.Header.Doorpathing>Doorpathing</CleanPathfinding.Settings.Header.Doorpathing>
+	<CleanPathfinding.Settings.Header.Rules>Rules</CleanPathfinding.Settings.Header.Rules>
+	<CleanPathfinding.Settings.Header.Misc>Misc</CleanPathfinding.Settings.Header.Misc>
 	
 	<CleanPathfinding.Settings.Bias>Dirty terrain avoidance (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.Bias>
 	<CleanPathfinding.Settings.Bias.Desc>Extra perceived pathcost to apply to filth-generating terrain tiles.</CleanPathfinding.Settings.Bias.Desc>
@@ -18,6 +19,8 @@
 	<CleanPathfinding.Settings.RegionModeThreshold>Region pathing threshold (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.RegionModeThreshold>
 	<CleanPathfinding.Settings.RegionModeThreshold.Desc>if a pawn's pathfinder calculates a number of cells beyond this threshold, they switch to "regional pathfinding mode", which causes their calculations to chunk out into 12x12 blocks. This is more expensive, but can broaden their search to allow them to discover things such as roads to aid calculating the best path. This option may be ideal for players whom are dillgent about building out pathing infrastructure.\n\nIf you decrease this threshold, consider lowering heuristic tuning, or turning it off entirely</CleanPathfinding.Settings.RegionModeThreshold.Desc>
 	
+	<CleanPathfinding.Settings.EnableTuning>Enable tuning</CleanPathfinding.Settings.EnableTuning>
+	<CleanPathfinding.Settings.EnableTuning.Desc>Turning this off returns pathfinding to normal vanilla behavior.</CleanPathfinding.Settings.EnableTuning.Desc>
 	
 	<CleanPathfinding.Settings.DarknessPenalty>Darkness penalty (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.DarknessPenalty>
 	<CleanPathfinding.Settings.DarknessPenalty.Desc>Sets the extra cost to add to dark tiles.</CleanPathfinding.Settings.DarknessPenalty.Desc>
@@ -40,11 +43,12 @@
 	
 	<CleanPathfinding.Settings.EnableWanderTuning>Enable wander tuning</CleanPathfinding.Settings.EnableWanderTuning>
 	<CleanPathfinding.Settings.EnableWanderTuning.Desc>Allows adjustments to pawns and animals that wander around aimlessly.</CleanPathfinding.Settings.EnableWanderTuning.Desc>
-	<CleanPathfinding.Settings.WanderDelay>Wander delay (Mod default: {0}, Min: {1}, Max: {2}) {3} seconds</CleanPathfinding.Settings.WanderDelay>
+	<CleanPathfinding.Settings.WanderDelay>Wander delay (Mod default: {0}, Min: {1}, Max: {2}) {3}</CleanPathfinding.Settings.WanderDelay>
 	<CleanPathfinding.Settings.WanderDelay.Desc>Adds a number of extra seconds before a pawn (including penned animals and wildlife) wanders to a new nearby spot. Increase this for a minor aid to performance at the cost of a less lively world.</CleanPathfinding.Settings.WanderDelay.Desc>
 	
 	<CleanPathfinding.Settings.DoorPathing>Enable doorpathing</CleanPathfinding.Settings.DoorPathing>
 	<CleanPathfinding.Settings.DoorPathing.Desc>Disabling this will remove the pathing priority gizmos given to doors.</CleanPathfinding.Settings.DoorPathing.Desc>
+	<CleanPathfinding.Settings.DoorPathing.Notice>(Doorpathing cannot be disabled while a game is currently loaded.)</CleanPathfinding.Settings.DoorPathing.Notice>
 	
 	<CleanPathfinding.Settings.DoorPathingSide>Side door pathcost (Mod default: {0}, Min: {1}, Max: {2}): </CleanPathfinding.Settings.DoorPathingSide>
 	<CleanPathfinding.Settings.DoorPathingSide.Desc>Pawns will consider this extra pathing cost when going through doors marked as side doors. For consideration, by default a normal door is considered +45 cost.</CleanPathfinding.Settings.DoorPathingSide.Desc>
@@ -54,7 +58,7 @@
 	<CleanPathfinding.Settings.OptimizeCollider>Optimize collider check</CleanPathfinding.Settings.OptimizeCollider>
 	<CleanPathfinding.Settings.OptimizeCollider.Desc>Replace the code that checks if pawns should collide with other pawns with an optimized version. No logic change. This optimization is automatically disabled if it detects another mod needs to modify this code and it would conflict. Changing this requires a restart.</CleanPathfinding.Settings.OptimizeCollider.Desc>
 	
-	<CleanPathfinding.Icon.DoorType.Desc>Change the door type.</CleanPathfinding.Icon.DoorType.Desc>
+	<CleanPathfinding.Icon.DoorType.Desc>Change the door type to alter routing behavior.\n\nColonist pawns resist going through side doors, and even more so emergency doors.\n\nExclusive doors are meant for rooms with no other way in, providing a routing hint.</CleanPathfinding.Icon.DoorType.Desc>
 	<CleanPathfinding.Icon.Normal>Normal</CleanPathfinding.Icon.Normal>
 	<CleanPathfinding.Icon.Side>Side</CleanPathfinding.Icon.Side>
 	<CleanPathfinding.Icon.Emergency>Emergency</CleanPathfinding.Icon.Emergency>
@@ -67,4 +71,8 @@
 	
 	<CleanPathfinding.NewAvoidArea>[Clean Pathfinding] Avoid area registered.</CleanPathfinding.NewAvoidArea>
 	<CleanPathfinding.DeletedAvoidArea>[Clean Pathfinding] Avoid area removed.</CleanPathfinding.DeletedAvoidArea>
+
+	<Seconds> seconds</Seconds>
+	<Off><![CDATA[<color=green>OFF</color>]]></Off>
+	<Max><![CDATA[<color=red>MAX</color>]]></Max>
 </LanguageData>
