@@ -60,11 +60,6 @@ namespace CleanPathfinding
 					Print(name);
 					return;
 				}
-				if (name == "BiomesTeam.BiomesIslands")
-				{
-					Print(name);
-					return;
-				}
 				if (name == "RH2.Faction.VOID")
 				{
 					Print(name);
